@@ -459,6 +459,10 @@ button,input,select,textarea{font-family:inherit}
 .reply24{display:flex;align-items:center;gap:6px;font-size:.84rem;color:var(--hero-muted);margin-top:6px}
 .reply24::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--glow);flex:none}
 .fab span small{display:block;font-size:.7rem;font-weight:600;opacity:.75;line-height:1.1}
+/* ===== Contour bleu sur toutes les bulles noires ===== */
+.panel,.band .panel,.offer,.card,.color,.mat,.review,.gtab,.gstage,.kpi,.faq details{border:2px solid var(--accent)!important}
+.empty{border:2px dashed var(--accent)!important}
+.offer:hover,.card:hover,.color:hover:not([disabled]),.gtab:hover,.gtab[aria-selected="true"]{border-color:var(--glow)!important;box-shadow:0 0 0 3px rgba(10,166,218,.18)}
 a{color:var(--accent)}
 </style>
 
