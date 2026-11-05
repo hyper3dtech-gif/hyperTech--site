@@ -403,6 +403,38 @@ footer .foot h4,footer b{color:var(--hero-ink)!important}
 footer .foot a{color:var(--hero-muted)}
 footer .foot a:hover{color:var(--glow)}
 footer .foot-bottom{border-top-color:#1b2028}
+
+/* ===== Jamais de blanc sur blanc : panneaux noirs, cartes sur fond gris-bleu clair ===== */
+.panel,.band .panel{background:var(--hero);color:var(--hero-ink);border-color:var(--hero);color-scheme:dark}
+.panel h3,.panel .legend,.panel label,.panel b,.panel .total b,.panel .total span{color:var(--hero-ink)}
+.panel .muted,.panel .small.muted,.panel .help,.panel .line span:first-child,.panel .line small,.panel .unit span,.panel th{color:var(--hero-muted)}
+.panel input,.panel select,.panel textarea,.band .panel input,.band .panel select,.band .panel textarea{background:#151a21;color:var(--hero-ink);border-color:#2b333e}
+.panel input::placeholder,.panel textarea::placeholder{color:#7d8793}
+.panel input:focus,.panel select:focus,.panel textarea:focus{border-color:var(--glow)}
+.panel .seg label{background:#151a21;color:var(--hero-ink);border-color:#2b333e}
+.panel .seg label:has(input:checked){border-color:var(--glow);background:rgba(90,209,240,.16)}
+.panel .seg input,.panel .check input{accent-color:var(--glow)}
+.panel .drop{background:transparent;border-color:#3a434f;color:var(--hero-ink)}
+.panel .drop:hover,.panel .drop.over{border-color:var(--glow)}
+.panel .pv{background:#151a21}
+.panel .ph .benchy-ico{color:#2b333e!important}
+.panel .total{border-top-color:var(--hero-ink)}
+.panel .line{border-color:#2b333e!important}
+.panel td,.panel th{border-bottom-color:#2b333e}
+.panel .tag{background:rgba(90,209,240,.16);color:var(--hero-ink)}
+.panel .tag.warn{background:var(--hero-ink);color:var(--ink)}
+.panel .eta{background:rgba(90,209,240,.16)}
+.panel .eta b{color:var(--glow)}
+.panel .status.err{background:var(--hero-ink);color:var(--ink)}
+.panel .btn.ghost{color:var(--hero-ink);border-color:#3a434f}
+.panel a:not(.btn){color:var(--glow)}
+.offer,.card,.color,.mat,.review,.gtab,.gstage,.empty,.kpi{background:var(--stage);border-color:#d8e0e6}
+.gtab[aria-selected="true"]{background:var(--accent-soft);border-color:var(--ink)}
+.color .boat,.view{background:#e4ebf0}
+.mock{background:var(--surface)}
+.mock-card,.file-row,.fileico,.mock-search,.mock-url{background:var(--stage)}
+.fab{bottom:calc(env(safe-area-inset-bottom,0px) + 84px)}
+.toast{bottom:calc(env(safe-area-inset-bottom,0px) + 150px)}
 a{color:var(--accent)}
 </style>
 
@@ -605,7 +637,7 @@ a{color:var(--accent)}
         <div class="field" id="scaleBox">
           <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><label for="scale">Taille</label><span class="mono" id="dimsOut"></span></div>
           <span class="help">Agrandit ou réduit le modèle : 100 % = taille d'origine, 50 % = deux fois plus petit. Maximum 21 × 21 × 20 cm.</span>
-          <div class="scale-row"><input id="scale" type="range" min="10" max="300" step="5" value="100" aria-label="Taille en pourcentage"><div class="unit" style="width:96px;flex:none"><input id="scaleN" type="number" min="1" max="1000" value="100" aria-label="Taille en pourcentage" inputmode="numeric"><span>%</span></div></div>
+          <div class="scale-row"><input id="scale" type="range" min="10" max="300" step="5" value="100" aria-label="Taille en pourcentage"><div class="unit" style="width:118px;flex:none"><input id="scaleN" type="number" min="1" max="1000" value="100" aria-label="Taille en pourcentage" inputmode="numeric"><span>%</span></div></div>
           <button class="btn sm ghost" type="button" id="fitBtn" hidden>Ajuster à la taille maximale</button>
         </div>
         <div class="field"><span class="legend">Coloris</span><span class="help">La couleur et la matière de votre pièce. PLA : beau et précis. PETG : plus solide, un peu plus cher.</span><div class="seg" id="colorSeg"></div></div>
