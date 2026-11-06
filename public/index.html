@@ -478,6 +478,11 @@ button,input,select,textarea{font-family:inherit}
 .aprice .line.tot{border-top:2px solid var(--ink);padding-top:6px;margin-top:4px;font-weight:800}
 .ctags{display:flex;gap:6px;flex-wrap:wrap}
 .ctags .sw{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:0;border:1px solid rgba(128,128,140,.5)}
+[hidden]{display:none!important}
+.owner-box{margin-top:14px}
+.owner-box .linkbtn{color:var(--muted);font-weight:600}
+.review .del{justify-self:start}
+.review .btn.ghost{color:var(--hero-ink);border-color:#3a434f;background:transparent}
 a{color:var(--accent)}
 </style>
 
@@ -819,9 +824,21 @@ a{color:var(--accent)}
         <div class="field"><span class="legend">Votre note</span><div class="stars-in" id="myStars"></div></div>
         <div class="field"><label for="myName">Prénom</label><input id="myName" maxlength="30" autocomplete="given-name"></div>
         <div class="field"><label for="myText">Votre avis</label><textarea id="myText" maxlength="400" placeholder="Qualité, délai, emballage…"></textarea></div>
+        <input id="myWebsite" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px">
         <a class="btn" id="myReviewWa" href="#" target="_blank" rel="noopener">Envoyer mon avis</a>
-        <p class="small muted">Votre avis m'arrive sur WhatsApp et je le publie ici après vérification.</p>
+        <button class="btn" type="button" id="myReviewPost" hidden>Publier mon avis</button>
+        <div id="myStatus"></div>
+        <p class="small muted" id="myNote">Votre avis m'arrive sur WhatsApp et je le publie ici après vérification.</p>
       </div>
+    </div>
+    <div class="owner-box" id="ownerBox">
+      <button class="linkbtn small" type="button" id="ownerOpen">Accès propriétaire</button>
+      <form id="ownerForm" hidden novalidate style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px">
+        <input id="ownerPw" type="password" autocomplete="current-password" placeholder="Mot de passe" style="max-width:240px">
+        <button class="btn sm" type="submit">Entrer</button>
+        <span class="small muted" id="ownerMsg"></span>
+      </form>
+      <span class="small" id="ownerOn" hidden>Mode propriétaire : un bouton « Supprimer » apparaît sur chaque avis. <button class="linkbtn" type="button" id="ownerOut">Se déconnecter</button></span>
     </div>
     <div class="faq" id="questions" style="margin-top:40px">
     <div>
@@ -1245,8 +1262,10 @@ function starPicker(el, initial, onChange){
   el.querySelectorAll("button").forEach(b => b.addEventListener("click", () => { val = +b.dataset.v; paint(); onChange(val); }));
   paint(); return () => val;
 }
+let LIVE = false, liveReviews = [], adminKey = "";
+try { adminKey = localStorage.getItem("ht-admin") || ""; } catch(e){}
 function renderReviews(){
-  const rv = catalog.reviews.slice().sort((a,b) => (b.date||"").localeCompare(a.date||""));
+  const rv = catalog.reviews.concat(liveReviews).sort((a,b) => (b.date||"").localeCompare(a.date||""));
   if (!rv.length){
     $("avgLine").textContent = "";
     $("reviewList").innerHTML = `<div class="empty"><h3>Pas encore d'avis</h3><p class="muted">Vous avez commandé chez moi ? Votre avis aide les prochains clients.</p></div>`;
@@ -1254,15 +1273,66 @@ function renderReviews(){
   }
   const avg = rv.reduce((s, r) => s + r.stars, 0) / rv.length;
   $("avgLine").innerHTML = `${starStr(Math.round(avg))} <b>${avg.toFixed(1).replace(".", ",")} / 5</b> · ${rv.length} avis`;
-  $("reviewList").innerHTML = rv.map(r => `<article class="review">${starStr(r.stars)}<p>${esc(r.text)}</p><div class="who"><b>${esc(r.name)}</b><span>${r.product ? esc(r.product) + " · " : ""}${esc(r.date ? new Date(r.date).toLocaleDateString("fr-CH", {month:"long", year:"numeric"}) : "")}</span></div></article>`).join("");
+  $("reviewList").innerHTML = rv.map(r => `<article class="review">${starStr(r.stars)}<p>${esc(r.text)}</p><div class="who"><b>${esc(r.name)}</b><span>${r.product ? esc(r.product) + " · " : ""}${esc(r.date ? new Date(r.date).toLocaleDateString("fr-CH", {day:"numeric", month:"long", year:"numeric"}) : "")}</span></div>${LIVE && adminKey && r.id ? `<button class="btn ghost sm del" type="button" data-del-rv="${esc(r.id)}">Supprimer</button>` : ""}</article>`).join("");
+  $("reviewList").querySelectorAll("[data-del-rv]").forEach(b => b.addEventListener("click", async () => {
+    if (b.dataset.confirm !== "1"){ b.dataset.confirm = "1"; b.textContent = "Confirmer la suppression"; return; }
+    b.disabled = true;
+    try {
+      const r = await fetch("/api/avis?id=" + encodeURIComponent(b.dataset.delRv), {method:"DELETE", headers:{"x-admin-key": adminKey}});
+      if (!r.ok) throw 0;
+      liveReviews = liveReviews.filter(x => x.id !== b.dataset.delRv); renderReviews();
+    } catch(e){ b.disabled = false; b.textContent = "Échec : réessayez"; }
+  }));
 }
+async function loadLiveReviews(){
+  try {
+    const r = await fetch("/api/avis", {cache:"no-store"});
+    if (!r.ok || !(r.headers.get("content-type")||"").includes("json")) return;
+    const list = await r.json(); if (!Array.isArray(list)) return;
+    LIVE = true; liveReviews = list;
+    $("myReviewWa").hidden = true; $("myReviewPost").hidden = false;
+    $("myNote").textContent = "Votre avis est publié tout de suite sur le site.";
+    $("ownerBox").hidden = false; showOwner();
+    renderReviews();
+  } catch(e){}
+}
+function showOwner(){ $("ownerOpen").hidden = !!adminKey; $("ownerOn").hidden = !adminKey; $("ownerForm").hidden = true; }
+$("ownerBox").hidden = true;
+$("ownerOpen").addEventListener("click", () => { $("ownerForm").hidden = false; $("ownerPw").focus(); });
+$("ownerForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const key = $("ownerPw").value.trim(); if (!key) return;
+  $("ownerMsg").textContent = "Vérification…";
+  try {
+    const r = await fetch("/api/avis?admin=1", {headers:{"x-admin-key": key}});
+    if (!r.ok) throw 0;
+    adminKey = key; try { localStorage.setItem("ht-admin", key); } catch(e){}
+    $("ownerPw").value = ""; $("ownerMsg").textContent = ""; showOwner(); renderReviews();
+  } catch(e){ $("ownerMsg").textContent = "Mot de passe incorrect."; }
+});
+$("ownerOut").addEventListener("click", () => { adminKey = ""; try { localStorage.removeItem("ht-admin"); } catch(e){} showOwner(); renderReviews(); });
+$("myReviewPost").addEventListener("click", async () => {
+  const name = $("myName").value.trim(), text = $("myText").value.trim();
+  const st = m => $("myStatus").innerHTML = m ? `<div class="status ${m[1]}">${esc(m[0])}</div>` : "";
+  if (!name || text.length < 3) return st(["Indiquez votre prénom et quelques mots sur votre commande.", "err"]);
+  $("myReviewPost").disabled = true; st(["Publication…", "ok"]);
+  try {
+    const r = await fetch("/api/avis", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({name, text, stars: myStars, website: $("myWebsite").value})});
+    if (!r.ok) throw new Error(await r.text());
+    const rev = await r.json();
+    if (rev && rev.id) liveReviews.unshift(rev);
+    $("myName").value = ""; $("myText").value = ""; renderReviews();
+    st(["Merci ! Votre avis est publié.", "ok"]);
+  } catch(err){ st([(err && err.message && err.message.length < 120 && !/^\s*</.test(err.message)) ? err.message : "Publication impossible pour le moment : réessayez.", "err"]); }
+  $("myReviewPost").disabled = false;
+});
 let myStars = 5;
 starPicker($("myStars"), 5, v => { myStars = v; updReviewWa(); });
 function updReviewWa(){
   $("myReviewWa").href = waLink(`Bonjour, voici mon avis pour Hyper Tech :\n\nNote : ${myStars}/5\nPrénom : ${$("myName").value.trim()}\nAvis : ${$("myText").value.trim()}\n\nJ'accepte qu'il soit publié sur le site.`);
 }
 ["myName","myText"].forEach(id => $(id).addEventListener("input", updReviewWa));
-updReviewWa(); renderReviews();
+updReviewWa(); renderReviews(); loadLiveReviews();
 let rvStars = 5;
 starPicker($("rvStars"), 5, v => { rvStars = v; });
 function renderReviewAdmin(){
