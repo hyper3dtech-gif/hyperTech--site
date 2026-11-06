@@ -646,7 +646,7 @@ a{color:var(--accent)}
           <label class="drop" id="drop" for="stlIn">
             <input id="stlIn" type="file" accept=".stl">
             <b id="dropTitle">Importer un fichier .stl</b>
-            <span class="small muted" id="dropSub">Cliquez ou glissez le fichier ici. Il reste sur votre appareil.</span>
+            <span class="small muted" id="dropSub">Cliquez ou glissez le fichier ici. Il me sera envoyé avec votre demande.</span>
           </label>
           <div class="pv" id="pv"><div class="ph"><svg class="benchy-ico" viewBox="0 0 400 280" style="width:70%;color:var(--line)" aria-hidden="true"><use href="#benchy"></use></svg></div></div>
         </div>
@@ -895,7 +895,34 @@ const colorOf = id => COLORS.find(c => c.id === id) || COLORS[0];
 const waLink = t => "https://wa.me/" + CONFIG.whatsapp + "?text=" + encodeURIComponent(t);
 const mailLink = (subject, body) => "mailto:" + CONFIG.contact + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
 let orderText = "";
-function setOrder(body){ orderText = body; $("customWa").href = waLink(body); }
+const STL_TOKEN = "@@STL@@";
+let stlUp = null;   // {file, url} : dernier fichier déposé
+function setOrder(body){ orderText = body; $("customWa").href = waLink(body.replace(STL_TOKEN, "Téléchargement : (je joins le fichier)")); }
+async function uploadSTL(f){
+  if (stlUp && stlUp.file === f) return stlUp.url;
+  const CH = 4*1024*1024, total = Math.ceil(f.size / CH);
+  if (!total || total > 5) throw new Error("trop lourd");
+  const id = (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2)).replace(/[^a-z0-9-]/gi, "");
+  let url = "";
+  for (let i = 0; i < total; i++){
+    const r = await fetch(`/api/stl?id=${id}&part=${i}&total=${total}&name=${encodeURIComponent(f.name)}`, {method:"POST", body: f.slice(i*CH, (i+1)*CH)});
+    if (!r.ok) throw new Error("envoi refusé");
+    url = (await r.json()).url;
+  }
+  stlUp = {file: f, url}; return url;
+}
+$("customWa").addEventListener("click", async e => {
+  if (!(state.mode === "file" && state.file && orderText.includes(STL_TOKEN))) return;
+  e.preventDefault();
+  const btn = $("customWa"), label = btn.textContent, w = window.open("about:blank", "_blank");
+  btn.textContent = "Envoi du fichier…"; btn.setAttribute("aria-busy", "true");
+  let line;
+  try { line = "Télécharger le fichier : " + await uploadSTL(state.file); }
+  catch(err){ line = "Téléchargement : (je joins le fichier)"; }
+  btn.textContent = label; btn.removeAttribute("aria-busy");
+  const href = waLink(orderText.replace(STL_TOKEN, line));
+  if (w && !w.closed) w.location.href = href; else location.href = href;
+});
 function isoWeek(d = new Date()){ const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); const day = t.getUTCDay() || 7; t.setUTCDate(t.getUTCDate() + 4 - day); const y = new Date(Date.UTC(t.getUTCFullYear(),0,1)); return t.getUTCFullYear() + "-S" + String(Math.ceil(((t - y) / 864e5 + 1) / 7)).padStart(2,"0"); }
 
 let catalog = {items:[]};
@@ -1446,7 +1473,7 @@ async function loadFile(f){
   $("dropTitle").textContent = f.name; $("dropSub").textContent = "Analyse du modèle…";
   try {
     const p = parseSTL(await f.arrayBuffer());
-    state.model = Object.assign({name: f.name}, analyse(p));
+    state.model = Object.assign({name: f.name}, analyse(p)); state.file = f; stlUp = null;
     $("dropSub").textContent = "Modèle importé. Cliquez pour en choisir un autre.";
     if (preview){ preview.stop(); preview.renderer.dispose(); preview.canvas.remove(); preview = null; }
     if (HAS3D){ const ph = $("pv").querySelector(".ph"); if (ph) ph.remove(); preview = makeViewer($("pv"), simplify(p, 150000), colorOf(state.color)); }
@@ -1529,8 +1556,8 @@ function calc(){
     <div class="line"><span>La Poste ${ship.id==="economy"?"Economy":"Priority"}</span><span>${chf(port)}</span></div>`;
   $("rTotal").textContent = fits ? chf(total) : "—";
   $("rInfo").textContent = `Remplissage ${infillTxt} · environ ${Math.max(1, Math.round(grams))} g de filament · environ ${fmtH(hours)} d'impression par pièce.`;
-  $("rAfter").textContent = "Dans WhatsApp, joignez votre fichier .stl au message.";
-  setOrder(`Bonjour, voici ma demande d'impression 3D :\n\nFichier : ${m.name} (joint)\nTaille : ${state.scale} % · ${fmtCm(dims[0])} × ${fmtCm(dims[1])} × ${fmtCm(dims[2])} cm\nColoris : ${c.mat} ${c.name}\nRemplissage : ${infillTxt}\nQuantité : ${qty}${perso.msg}\nEnvoi : La Poste ${ship.id==="economy"?"Economy":"Priority"}\n\nEstimation du prix :\n${fits ? `• Modèle : ${chf(piece*qty)}${qty > 1 ? ` (${qty} × ${chf(piece)})` : ""}${perso.fee ? `\n• Personnalisation : ${chf(perso.fee)}` : ""}\n• Livraison : ${chf(port)}` : "à confirmer (modèle trop grand à cette taille)"}\n\nNom :\nAdresse :`);
+  $("rAfter").textContent = "Votre fichier .stl part avec la demande : rien à joindre.";
+  setOrder(`Bonjour, voici ma demande d'impression 3D :\n\nFichier : ${m.name}\n${STL_TOKEN}\nTaille : ${state.scale} % · ${fmtCm(dims[0])} × ${fmtCm(dims[1])} × ${fmtCm(dims[2])} cm\nColoris : ${c.mat} ${c.name}\nRemplissage : ${infillTxt}\nQuantité : ${qty}${perso.msg}\nEnvoi : La Poste ${ship.id==="economy"?"Economy":"Priority"}\n\nEstimation du prix :\n${fits ? `• Modèle : ${chf(piece*qty)}${qty > 1 ? ` (${qty} × ${chf(piece)})` : ""}${perso.fee ? `\n• Personnalisation : ${chf(perso.fee)}` : ""}\n• Livraison : ${chf(port)}` : "à confirmer (modèle trop grand à cette taille)"}\n\nNom :\nAdresse :`);
 }
 
 /* ===== Contact ===== */
