@@ -1530,7 +1530,7 @@ function calc(){
   $("rTotal").textContent = fits ? chf(total) : "—";
   $("rInfo").textContent = `Remplissage ${infillTxt} · environ ${Math.max(1, Math.round(grams))} g de filament · environ ${fmtH(hours)} d'impression par pièce.`;
   $("rAfter").textContent = "Dans WhatsApp, joignez votre fichier .stl au message.";
-  setOrder(`Bonjour, voici ma demande d'impression 3D :\n\nFichier : ${m.name} (joint)\nTaille : ${state.scale} % · ${fmtCm(dims[0])} × ${fmtCm(dims[1])} × ${fmtCm(dims[2])} cm\nColoris : ${c.mat} ${c.name}\nRemplissage : ${infillTxt}\nQuantité : ${qty}${perso.msg}\nEnvoi : La Poste ${ship.id==="economy"?"Economy":"Priority"}\nEstimation : ${fits ? chf(total) : "à confirmer"}\n\nNom :\nAdresse :`);
+  setOrder(`Bonjour, voici ma demande d'impression 3D :\n\nFichier : ${m.name} (joint)\nTaille : ${state.scale} % · ${fmtCm(dims[0])} × ${fmtCm(dims[1])} × ${fmtCm(dims[2])} cm\nColoris : ${c.mat} ${c.name}\nRemplissage : ${infillTxt}\nQuantité : ${qty}${perso.msg}\nEnvoi : La Poste ${ship.id==="economy"?"Economy":"Priority"}\n\nEstimation du prix :\n${fits ? `• Modèle : ${chf(piece*qty)}${qty > 1 ? ` (${qty} × ${chf(piece)})` : ""}${perso.fee ? `\n• Personnalisation : ${chf(perso.fee)}` : ""}\n• Livraison : ${chf(port)}` : "à confirmer (modèle trop grand à cette taille)"}\n\nNom :\nAdresse :`);
 }
 
 /* ===== Contact ===== */
