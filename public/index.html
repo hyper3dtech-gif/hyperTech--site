@@ -536,6 +536,12 @@ button,input,select,textarea{font-family:inherit}
 .trk-mine .it{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;border:1.5px solid #2b333e;border-radius:12px;padding:10px 12px}
 .od-where{border:2px solid var(--glow);border-radius:12px;padding:10px 12px;font-size:.92rem;background:rgba(90,209,240,.12)}
 .od-where b{color:var(--glow)}
+.cart{display:grid;gap:8px;border:2px solid var(--glow);border-radius:12px;padding:12px;background:rgba(90,209,240,.08)}
+.cart .it{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:.9rem;border-bottom:1px solid #2b333e;padding-bottom:6px}
+.cart .it:last-of-type{border-bottom:0}
+.cart .btn.ghost{color:var(--hero-ink);border-color:#3a434f;padding:4px 10px;font-size:.78rem}
+#addMore{color:var(--hero-ink);border:2px dashed var(--glow)!important;background:transparent}
+.trk-files{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
 a{color:var(--accent)}
 </style>
 
@@ -771,6 +777,8 @@ a{color:var(--accent)}
         <div class="total"><span>Total</span><b id="rTotal"></b></div>
         <p class="small muted" id="rInfo"></p>
         <div class="eta"><span>Livraison estimée</span><b id="rEta"></b></div>
+        <div id="cartBox" class="cart" hidden></div>
+        <button class="btn ghost" type="button" id="addMore" hidden>+ Ajouter une autre impression</button>
         <a class="btn" id="customWa" href="#" target="_blank" rel="noopener">Envoyer ma demande sur WhatsApp</a>
         <div class="od-pending" id="odPending" hidden><b>Demande pas encore envoyée.</b> Il manque vos coordonnées de livraison. <button class="linkbtn" type="button" id="odResume">Terminer ma demande</button></div>
         <p class="reply24">Je réponds toujours en 24 heures maximum.</p>
@@ -1040,7 +1048,43 @@ const mailLink = (subject, body) => "mailto:" + CONFIG.contact + "?subject=" + e
 let orderText = "";
 const STL_TOKEN = "@@STL@@";
 let stlUp = null;   // {file, url} : dernier fichier déposé
-function setOrder(body){ orderText = body; $("customWa").href = waLink(body.replace(STL_TOKEN, "Téléchargement : (je joins le fichier)")); }
+function setOrder(body){ orderText = body; $("customWa").href = waLink(body.replace(STL_TOKEN, "Téléchargement : (je joins le fichier)")); if (typeof updCart === "function") updCart(); }
+/* Panier : plusieurs impressions dans une seule commande */
+let cart = [];
+function updCart(){
+  if (!LIVE) return;
+  $("addMore").hidden = false;
+  const n = cart.length + (state.item && state.item.valid ? 1 : 0);
+  $("customWa").textContent = n > 1 ? `Envoyer ma demande (${n} impressions)` : "Envoyer ma demande";
+  $("cartBox").hidden = !cart.length;
+  $("cartBox").innerHTML = cart.length ? `<b>Déjà dans votre commande</b>${cart.map((it, i) => `<div class="it"><span>Impression ${i+1} · ${esc(it.label)}<br><small class="muted">${it.price != null ? chf(it.price + it.perso) : "prix confirmé par e-mail"}</small></span><button class="btn ghost" type="button" data-rm="${i}">Retirer</button></div>`).join("")}<small class="muted">${state.item && state.item.valid ? `L'impression affichée ci-dessus sera l'impression ${cart.length + 1}. ` : ""}Tout part ensemble, avec une seule livraison.</small>${(() => { const b = buildCart(); return b && !b.quote ? `<div class="it" style="border:0;font-weight:800"><span>Total de toute la commande, livraison comprise</span><span>${chf(b.amount)}</span></div>` : ""; })()}` : "";
+  $("cartBox").querySelectorAll("[data-rm]").forEach(b => b.addEventListener("click", () => { cart.splice(+b.dataset.rm, 1); updCart(); }));
+}
+function resetCalc(){
+  state.model = null; state.file = null; stlUp = null; $("stlIn").value = "";
+  $("dropTitle").textContent = "Importer un fichier .stl"; $("dropSub").textContent = "Cliquez ou glissez le fichier ici. Il me sera envoyé avec votre demande.";
+  if (preview){ preview.stop(); preview.renderer.dispose(); preview.canvas.remove(); preview = null; }
+  if (!$("pv").querySelector(".ph")) $("pv").insertAdjacentHTML("afterbegin", `<div class="ph"><svg class="benchy-ico" viewBox="0 0 400 280" style="width:70%;color:var(--line)" aria-hidden="true"><use href="#benchy"></use></svg></div>`);
+  $("linkIn").value = ""; $("crDesc").value = ""; $("crSize").value = ""; $("qty").value = 1;
+  $("persoOn").checked = false; $("persoTxt").value = ""; $("persoTxt").hidden = true;
+  setScale(100);
+}
+function buildCart(){
+  const items = cart.concat(state.item && state.item.valid ? [state.item] : []);
+  if (!items.length) return null;
+  const ship = SHIP.find(x => x.id === state.ship), shipName = ship.id === "economy" ? "Economy" : "Priority", many = items.length > 1;
+  const files = []; let txt = `Bonjour, voici ma commande d'impression 3D${many ? ` (${items.length} impressions)` : ""} :\n`;
+  items.forEach((it, i) => {
+    let lines = it.lines;
+    if (it.file){ lines = lines.replace("@@FILE@@", `@@STL${files.length}@@`); files.push(it.file); } else lines = lines.replace("\n@@FILE@@", "");
+    txt += `\n${many ? `— Impression ${i+1} —\n` : ""}${lines}\n`;
+  });
+  const priced = items.every(it => it.price != null);
+  const grams = items.reduce((g, it) => g + (it.grams || 0), 0), port = ship.price((grams + CONFIG.emballageG)/1000);
+  const est = items.map((it, i) => `• Modèle${many ? " " + (i+1) : ""} : ${it.price != null ? chf(it.price) : "sur devis"}${it.perso ? `\n• Personnalisation${many ? " " + (i+1) : ""} : ${chf(it.perso)}` : ""}`).join("\n");
+  txt += `\nEnvoi : La Poste ${shipName}\n\nEstimation du prix :\n${est}\n• Livraison : ${priced ? chf(port) : "dès " + chf(ship.price(0))}`;
+  return {text: txt, files, amount: priced ? items.reduce((t, it) => t + it.price + it.perso, 0) + port : 0, quote: !priced, summary: many ? `${items.length} impressions` : items[0].label};
+}
 async function uploadSTL(f){
   if (stlUp && stlUp.file === f) return stlUp.url;
   const CH = 4*1024*1024, total = Math.ceil(f.size / CH);
@@ -1055,7 +1099,7 @@ async function uploadSTL(f){
   stlUp = {file: f, url}; return url;
 }
 /* Commande par e-mail (site en ligne) : fenêtre avec nom, e-mail, adresse */
-let odText = "", odFile = null, odSent = false, odOpts = {};
+let odText = "", odFiles = [], odSent = false, odOpts = {};
 const TWINT_NUM = CONFIG.whatsappAffiche;
 const newOrderId = () => { const d = new Date(), a = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; let r = ""; const u = new Uint32Array(6); crypto.getRandomValues(u); u.forEach(x => r += a[x % a.length]); return `HT-${String(d.getDate()).padStart(2,"0")}${String(d.getMonth()+1).padStart(2,"0")}-${r}`; };
 document.addEventListener("click", e => { const b = e.target.closest("[data-copy],[data-copy-el]"); if (!b) return; const t = b.dataset.copy || $(b.dataset.copyEl).textContent; try { navigator.clipboard.writeText(t); const o = b.textContent; b.textContent = "Copié"; setTimeout(() => b.textContent = o, 1500); } catch(err){} });
@@ -1063,8 +1107,8 @@ const odShut = () => { const d = $("orderDlg"); d.close ? d.close() : d.removeAt
 function odTryClose(){ if (odSent) return odShut(); $("odLeave").hidden = false; $("odLeave").scrollIntoView({block:"nearest"}); }
 const stripTail = t => t.replace(/\n*Nom :\s*\nAdresse :\s*$/, "").trim();
 function openOrder(text, file, opts){
-  odText = stripTail(text); odFile = file || null; odOpts = opts || {};
-  $("odSummary").textContent = odText.replace(STL_TOKEN, file ? "(le fichier part avec la demande)" : "").replace(/\n{3,}/g, "\n\n");
+  odText = stripTail(text); odFiles = Array.isArray(file) ? file : file ? [file] : []; odOpts = opts || {};
+  $("odSummary").textContent = odText.replace(STL_TOKEN, "(le fichier part avec la demande)").replace(/@@STL\d+@@/g, "(le fichier part avec la demande)").replace(/\n{3,}/g, "\n\n");
   $("odStatus").innerHTML = ""; $("odSend").disabled = false; $("odSend").hidden = false;
   odSent = false; $("odNext").hidden = true; $("odLeave").hidden = true; $("odAlert").hidden = false; $("odReq").hidden = false;
   $("odStep2").className = "cur"; $("odStep3").className = "";
@@ -1087,16 +1131,17 @@ $("orderForm").addEventListener("submit", async e => {
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) return st("Vérifiez votre adresse e-mail.", "err");
   if ($("odTel").value.replace(/\D/g, "").length < 9) return st("Indiquez votre numéro de téléphone.", "err");
   $("odSend").disabled = true;
-  let link = "";
-  if (odFile){
-    st("Envoi du fichier 3D…", "ok");
-    try { link = await uploadSTL(odFile); } catch(err){ $("odSend").disabled = false; return st("Le fichier n'a pas pu être envoyé : réessayez dans un instant.", "err"); }
+  const links = [];
+  for (let i = 0; i < odFiles.length; i++){
+    st(odFiles.length > 1 ? `Envoi du fichier 3D ${i+1} sur ${odFiles.length}…` : "Envoi du fichier 3D…", "ok");
+    try { stlUp = null; links.push(await uploadSTL(odFiles[i])); } catch(err){ $("odSend").disabled = false; return st("Le fichier n'a pas pu être envoyé : réessayez dans un instant.", "err"); }
   }
+  const link = links[0] || "";
   st("Envoi de la demande…", "ok");
   const oid = newOrderId(), payNow = !!(odOpts.amount > 0 && !odOpts.quote);
-  const commande = `Commande ${oid}\nPaiement : ${payNow ? "TWINT immédiat, " + chf(odOpts.amount) : "après confirmation du prix"}\n\n` + odText.replace(STL_TOKEN, link ? "Télécharger le fichier : " + link : "").replace(/\n{3,}/g, "\n\n");
+  const commande = `Commande ${oid}\nPaiement : ${payNow ? "TWINT immédiat, " + chf(odOpts.amount) : "après confirmation du prix"}\n\n` + odText.replace(STL_TOKEN, link ? "Télécharger le fichier : " + link : "").replace(/@@STL(\d+)@@/g, (x, i) => "Télécharger le fichier : " + (links[+i] || "")).replace(/\n{3,}/g, "\n\n");
   let mailed = false, saved = false;
-  try { const rc = await fetch("/api/commande", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({id: oid, amount: payNow ? odOpts.amount : null, quote: !payNow, summary: odOpts.summary || "", name, email: mail, phone: $("odTel").value.trim(), address: addr, note: $("odNote").value.trim(), file: link, full: commande, details: odText.replace("\n" + STL_TOKEN, "").replace(STL_TOKEN, "").replace(/^Bonjour[^\n]*\n+/, "").replace(/\n{3,}/g, "\n\n").trim() + `\n\nLivraison à : ${addr}\nTéléphone : ${$("odTel").value.trim()}`})}); if (rc.ok){ saved = true; mailed = !!(await rc.json()).mailed; } } catch(err){}
+  try { const rc = await fetch("/api/commande", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({id: oid, amount: payNow ? odOpts.amount : null, quote: !payNow, summary: odOpts.summary || "", name, email: mail, phone: $("odTel").value.trim(), address: addr, note: $("odNote").value.trim(), file: link, files: links, full: commande, details: odText.replace("\n" + STL_TOKEN, "").replace(STL_TOKEN, "").replace(/\n?@@STL\d+@@/g, "").replace(/^Bonjour[^\n]*\n+/, "").replace(/\n{3,}/g, "\n\n").trim() + `\n\nLivraison à : ${addr}\nTéléphone : ${$("odTel").value.trim()}`})}); if (rc.ok){ saved = true; mailed = !!(await rc.json()).mailed; } } catch(err){}
   saveMine({id: oid, amount: payNow ? odOpts.amount : null, quote: !payNow, summary: odOpts.summary || "", at: new Date().toISOString()});
   try {
     const r = await fetch("/", {method:"POST", headers:{"Content-Type":"application/x-www-form-urlencoded"},
@@ -1121,17 +1166,25 @@ $("orderForm").addEventListener("submit", async e => {
       : `<b>Votre demande est envoyée. Ne payez pas encore.</b>
          <ol><li>Je vérifie votre demande et vous envoie le prix exact <b>par e-mail, en 24 heures maximum</b>.</li><li>Vous payez ensuite par TWINT, selon mon e-mail.</li><li>J'imprime votre pièce et je vous l'envoie par La Poste, avec un numéro de suivi.</li></ol>`;
     $("odNext").hidden = false; $("odNext").scrollIntoView({block:"nearest"}); $("odPending").hidden = true;
+    if (odOpts.cart){ cart = []; resetCalc(); updCart(); }
   } catch(err){ st("L'envoi n'a pas fonctionné : réessayez, ou écrivez-moi sur WhatsApp.", "err"); $("odSend").disabled = false; }
 });
 document.addEventListener("click", e => {
   const a = e.target.closest("[data-order]"); if (!a || !LIVE) return;
-  e.preventDefault(); openOrder(a.dataset.order, null, {amount: +a.dataset.amount || 0, quote: !a.dataset.amount, summary: a.dataset.summary || ""});
+  e.preventDefault(); openOrder(a.dataset.order, [], {amount: +a.dataset.amount || 0, quote: !a.dataset.amount, summary: a.dataset.summary || ""});
+});
+$("addMore").addEventListener("click", () => {
+  if (!(state.item && state.item.valid)){ $("rMsg").innerHTML = `<div class="status err">Terminez d'abord cette impression : importez un fichier, collez un lien ou décrivez votre idée.</div>`; return; }
+  cart.push(Object.assign({}, state.item)); resetCalc(); updCart();
+  scrollToEl("#sur-mesure .custom");
+  $("rMsg").innerHTML = `<div class="status ok">Impression ${cart.length} ajoutée. Configurez maintenant la suivante, ou envoyez votre demande.</div>`;
 });
 $("customWa").addEventListener("click", async e => {
   if (LIVE){
     e.preventDefault();
-    const isFile = state.mode === "file" && state.file && orderText.includes(STL_TOKEN);
-    return openOrder(orderText, isFile ? state.file : null, {amount: isFile ? state.total : 0, quote: !(isFile && state.total > 0), summary: state.mode === "file" && state.model ? `Fichier ${state.model.name} · ${colorOf(state.color).mat} ${colorOf(state.color).name}` : state.mode === "link" ? "Lien Printables" : "Création personnalisée"});
+    const b = buildCart();
+    if (!b){ $("rMsg").innerHTML = `<div class="status err">Ajoutez d'abord un fichier, un lien ou une idée.</div>`; return; }
+    return openOrder(b.text, b.files, {amount: b.amount, quote: b.quote, summary: b.summary, cart: true});
   }
   if (!(state.mode === "file" && state.file && orderText.includes(STL_TOKEN))) return;
   e.preventDefault();
@@ -1523,7 +1576,8 @@ async function loadAdminOrders(){
     $("trkAdmin").innerHTML = `<h3 style="margin-top:18px">Mes commandes <span class="tag solid">visible par vous seule</span></h3>` + (list.length ? list.map(o => {
       const last = o.steps[o.steps.length-1].s;
       return `<div class="trk-admin-row" data-oid="${esc(o.id)}"><div><b>${esc(o.id)}</b> · ${esc(o.name || "")} · ${esc(o.summary || "")}${o.amount ? " · " + chf(o.amount) : " · sur devis"}<br><small class="muted">Reçue le ${fmtDT(o.created)} · étape actuelle : ${STEP_LABEL[last]}</small>
-        ${o.contact ? `<details style="margin-top:6px"><summary class="small" style="color:var(--glow);cursor:pointer">Voir le détail du client et de la commande</summary><div class="small" style="margin-top:6px;line-height:1.6">E-mail : <a href="mailto:${esc(o.contact.email)}">${esc(o.contact.email)}</a><br>Téléphone : <a href="tel:${esc(o.contact.phone)}">${esc(o.contact.phone)}</a><br>Adresse : ${esc(o.contact.address)}${o.contact.note ? "<br>Remarque : " + esc(o.contact.note) : ""}${o.file ? `<br><a class="btn sm" style="margin-top:6px" href="${esc(o.file)}">Télécharger le fichier .stl</a>` : ""}</div><pre style="white-space:pre-wrap;font:500 .8rem/1.5 var(--f-body);color:var(--hero-muted);background:#151a21;border-radius:10px;padding:10px;margin-top:8px">${esc(o.details || "")}</pre></details>` : ""}</div>
+        ${(() => { const fl = (o.files && o.files.length) ? o.files : o.file ? [o.file] : []; return fl.length ? `<div class="trk-files">${fl.map((f, i) => `<a class="btn sm" href="${esc(f)}">⬇ Télécharger le fichier 3D${fl.length > 1 ? " " + (i+1) : ""}</a>`).join("")}</div>` : ""; })()}
+        ${o.contact ? `<details style="margin-top:6px"><summary class="small" style="color:var(--glow);cursor:pointer">Voir le détail du client et de la commande</summary><div class="small" style="margin-top:6px;line-height:1.6">E-mail : <a href="mailto:${esc(o.contact.email)}">${esc(o.contact.email)}</a><br>Téléphone : <a href="tel:${esc(o.contact.phone)}">${esc(o.contact.phone)}</a><br>Adresse : ${esc(o.contact.address)}${o.contact.note ? "<br>Remarque : " + esc(o.contact.note) : ""}</div><pre style="white-space:pre-wrap;font:500 .8rem/1.5 var(--f-body);color:var(--hero-muted);background:#151a21;border-radius:10px;padding:10px;margin-top:8px">${esc(o.details || "")}</pre></details>` : ""}</div>
         <div class="ctl"><select data-k="status">${stepsFor(o).map(k => `<option value="${k}" ${k === last ? "selected" : ""}>${STEP_LABEL[k]}</option>`).join("")}</select>
         <input data-k="tracking" placeholder="N° de suivi La Poste" value="${esc(o.tracking || "")}">
         ${o.quote ? `<input data-k="amount" type="number" min="1" step="0.5" placeholder="Prix confirmé" value="${o.amount || ""}" style="max-width:150px">` : ""}
@@ -1559,7 +1613,7 @@ async function loadLiveReviews(){
     if (!r.ok || !(r.headers.get("content-type")||"").includes("json")) return;
     const list = await r.json(); if (!Array.isArray(list)) return;
     LIVE = true; liveReviews = list;
-    $("customWa").textContent = "Envoyer ma demande"; $("customWa").removeAttribute("target");
+    $("customWa").textContent = "Envoyer ma demande"; $("customWa").removeAttribute("target"); setTimeout(updCart, 0);
     const rp = $("customWa").parentElement.querySelector(".reply24"); if (rp) rp.textContent = "Je réponds toujours en 24 heures maximum, par e-mail.";
     if (state.mode === "file" && state.model) $("rAfter").textContent = "Votre fichier .stl part avec la demande : rien à joindre.";
     $("myReviewWa").hidden = true; $("myReviewPost").hidden = false;
@@ -1966,6 +2020,8 @@ function calc(){
     $("rTotal").textContent = "Sur devis";
     $("rInfo").textContent = "Je vous envoie un devis, puis un aperçu du modèle à valider avant d'imprimer.";
     $("rAfter").textContent = idea ? "Dans WhatsApp, joignez vos photos ou croquis au message." : "Décrivez d'abord votre idée.";
+    state.item = {valid: !!idea, label: "Création personnalisée · " + $("crType").value, price: null, perso: 0, grams: 0, file: null,
+      lines: `Création personnalisée : ${$("crType").value}\nIdée : ${idea}\nTaille souhaitée : ${$("crSize").value.trim() || "à définir"}\nColoris : ${c.mat} ${c.name}\nRemplissage : ${infillTxt}\nQuantité : ${qty}`};
     setOrder(`Bonjour, j'aimerais que vous créiez un modèle 3D pour moi :\n\nType : ${$("crType").value}\nIdée : ${idea || "(à décrire)"}\nTaille souhaitée : ${$("crSize").value.trim() || "à définir"}\nColoris : ${c.mat} ${c.name}\nRemplissage : ${infillTxt}\nQuantité : ${qty}\nEnvoi : ${ship_}\n\n(Je joins une photo ou un croquis.)\nNom :\nAdresse :`);
     return;
   }
@@ -1977,6 +2033,8 @@ function calc(){
     $("rTotal").textContent = "Sur devis";
     $("rInfo").textContent = "Je calcule le prix exact à partir de votre lien et je vous réponds sur WhatsApp.";
     $("rAfter").textContent = link ? "Votre lien sera inclus dans le message." : "Collez d'abord le lien du modèle.";
+    state.item = {valid: !!link, label: "Lien : " + (link.replace(/^https?:\/\/(www\.)?/, "").slice(0, 40)), price: null, perso: perso.fee, grams: 0, file: null,
+      lines: `Modèle : ${link}\nTaille : ${state.scale} %\nColoris : ${c.mat} ${c.name}\nRemplissage : ${infillTxt}\nQuantité : ${qty}${perso.msg}`};
     setOrder(`Bonjour, voici ma demande d'impression 3D :\n\nModèle : ${link || "(lien à coller)"}\nTaille : ${state.scale} %\nColoris : ${c.mat} ${c.name}\nRemplissage : ${infillTxt}\nQuantité : ${qty}${perso.msg}\nEnvoi : La Poste ${ship.id==="economy"?"Economy":"Priority"}\n\nNom :\nAdresse :`);
     return;
   }
@@ -1987,6 +2045,7 @@ function calc(){
     $("rTotal").textContent = "—";
     $("rInfo").textContent = "Importez votre fichier .stl pour voir le prix.";
     $("rAfter").textContent = "Pas de fichier ? Choisissez « J'ai un lien Printables ».";
+    state.item = {valid: false};
     setOrder("Bonjour, j'aimerais faire imprimer un modèle 3D.");
     return;
   }
@@ -2010,6 +2069,8 @@ function calc(){
   $("rTotal").textContent = fits ? chf(total) : "—";
   $("rInfo").textContent = `Remplissage ${infillTxt} · environ ${Math.max(1, Math.round(grams))} g de filament · environ ${fmtH(hours)} d'impression par pièce.`;
   $("rAfter").textContent = "Votre fichier .stl part avec la demande : rien à joindre.";
+  state.item = {valid: fits, label: `${m.name} · ${c.mat} ${c.name}${qty > 1 ? " · " + qty + " pièces" : ""}`, price: piece*qty, perso: perso.fee, grams: grams*qty, file: state.file,
+    lines: `Fichier : ${m.name}\n@@FILE@@\nTaille : ${state.scale} % · ${fmtCm(dims[0])} × ${fmtCm(dims[1])} × ${fmtCm(dims[2])} cm\nColoris : ${c.mat} ${c.name}\nRemplissage : ${infillTxt}\nQuantité : ${qty}${perso.msg}`};
   setOrder(`Bonjour, voici ma demande d'impression 3D :\n\nFichier : ${m.name}\n${STL_TOKEN}\nTaille : ${state.scale} % · ${fmtCm(dims[0])} × ${fmtCm(dims[1])} × ${fmtCm(dims[2])} cm\nColoris : ${c.mat} ${c.name}\nRemplissage : ${infillTxt}\nQuantité : ${qty}${perso.msg}\nEnvoi : La Poste ${ship.id==="economy"?"Economy":"Priority"}\n\nEstimation du prix :\n${fits ? `• Modèle : ${chf(piece*qty)}${qty > 1 ? ` (${qty} × ${chf(piece)})` : ""}${perso.fee ? `\n• Personnalisation : ${chf(perso.fee)}` : ""}\n• Livraison : ${chf(port)}` : "à confirmer (modèle trop grand à cette taille)"}\n\nNom :\nAdresse :`);
 }
 

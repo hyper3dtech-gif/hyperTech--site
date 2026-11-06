@@ -47,7 +47,7 @@ async function notifyOwner(o, origin) {
   const user = process.env.GMAIL_USER, pass = (process.env.GMAIL_APP_PASSWORD || "").replace(/\s/g, "");
   if (!user || !pass) return false;
   const c = o.contact || {};
-  const text = `Nouvelle commande ${o.id}\nPaiement : ${o.quote ? "après confirmation du prix (à envoyer au client)" : "TWINT immédiat, " + chf(o.amount)}\n\nClient : ${o.name}\nE-mail : ${c.email}\nTéléphone : ${c.phone}\nAdresse : ${c.address}${c.note ? "\nRemarque : " + c.note : ""}\n${o.file ? "\nFichier 3D : " + o.file + "\n" : ""}\n${o.details}\n\nGérer la commande : ${origin}/#suivi`;
+  const text = `Nouvelle commande ${o.id}\nPaiement : ${o.quote ? "après confirmation du prix (à envoyer au client)" : "TWINT immédiat, " + chf(o.amount)}\n\nClient : ${o.name}\nE-mail : ${c.email}\nTéléphone : ${c.phone}\nAdresse : ${c.address}${c.note ? "\nRemarque : " + c.note : ""}\n${(o.files && o.files.length ? o.files : o.file ? [o.file] : []).map((f, i, l) => "\nFichier 3D" + (l.length > 1 ? " " + (i + 1) : "") + " : " + f).join("")}\n\n${o.details}\n\nGérer la commande : ${origin}/#suivi`;
   const tr = nodemailer.createTransport({ service: "gmail", auth: { user, pass } });
   await tr.sendMail({ from: `"Site Hyper Tech" <${user}>`, to: user, replyTo: c.email || user, subject: `Nouvelle commande ${o.id} · ${o.name}${o.quote ? " · sur devis" : " · " + chf(o.amount)}`, text });
   return true;
@@ -84,7 +84,7 @@ export default async (req, context) => {
     await store.setJSON("rl/" + who, recent.concat(Date.now()));
     const now = new Date().toISOString();
     const amount = Number(d.amount) > 0 && Number(d.amount) < 10000 ? Math.round(Number(d.amount) * 100) / 100 : null;
-    const o = { id: oid, created: now, quote: !!d.quote, amount, summary: clean(d.summary, 160), name: clean(d.name, 60), contact: { email: clean(d.email, 80), phone: clean(d.phone, 30), address: clean(d.address, 200), note: clean(d.note, 300) }, details: clean(d.full || d.details, 4000), file: clean(d.file, 200), steps: [{ s: "recue", at: now }], tracking: "" };
+    const o = { id: oid, created: now, quote: !!d.quote, amount, summary: clean(d.summary, 160), name: clean(d.name, 60), contact: { email: clean(d.email, 80), phone: clean(d.phone, 30), address: clean(d.address, 200), note: clean(d.note, 300) }, details: clean(d.full || d.details, 4000), file: clean(d.file, 200), files: (Array.isArray(d.files) ? d.files : []).slice(0, 10).map(f => clean(f, 200)).filter(f => /^https:\/\//.test(f) || /^http:\/\/localhost/.test(f)), steps: [{ s: "recue", at: now }], tracking: "" };
     await store.setJSON("c/" + oid, o);
     const mailed = await sendConfirmation(o, String(d.email || "").trim(), clean(d.details, 3000), url.origin).catch(() => false);
     await notifyOwner(o, url.origin).catch(() => false);
