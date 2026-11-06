@@ -11,6 +11,7 @@
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 </head>
 <body>
+<form name="commande" data-netlify="true" netlify-honeypot="bot-field" hidden><input name="bot-field"><input name="nom"><input name="email"><input name="telephone"><textarea name="adresse"></textarea><textarea name="remarque"></textarea><textarea name="commande"></textarea><input name="fichier"></form>
 
 
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap">
@@ -483,6 +484,10 @@ button,input,select,textarea{font-family:inherit}
 .owner-box .linkbtn{color:var(--muted);font-weight:600}
 .review .del{justify-self:start}
 .review .btn.ghost{color:var(--hero-ink);border-color:#3a434f;background:transparent}
+.order-dlg{border:0;padding:0;background:transparent;width:min(640px,calc(100% - 32px));max-height:calc(100dvh - 32px);overflow:auto}
+.order-dlg::backdrop{background:rgba(10,12,16,.6)}
+.order-dlg .panel{margin:0}
+.od-sum pre{margin:6px 0 0;white-space:pre-wrap;font:500 .84rem/1.5 var(--f-body);color:var(--hero-muted);background:#151a21;border-radius:10px;padding:10px 12px;max-height:200px;overflow:auto}
 a{color:var(--accent)}
 </style>
 
@@ -872,6 +877,23 @@ a{color:var(--accent)}
   </div>
   <div class="foot-bottom"><span>© <span id="yr"></span> Hyper Tech · Impression 3D en Suisse</span><span>PLA &amp; PETG · Max 21 × 21 × 20 cm · Envoi La Poste</span></div>
 </div></footer>
+<dialog class="order-dlg" id="orderDlg" aria-labelledby="odTitle">
+  <form class="panel" id="orderForm" novalidate>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h3 id="odTitle">Envoyer ma demande</h3><button class="btn ghost sm" type="button" id="odClose" aria-label="Fermer">✕</button></div>
+    <div class="od-sum"><span class="legend">Votre demande</span><pre id="odSummary"></pre></div>
+    <div class="fgrid">
+      <div class="field"><label for="odName">Prénom et nom</label><input id="odName" autocomplete="name" maxlength="60" required></div>
+      <div class="field"><label for="odMail">E-mail</label><span class="help">Je vous réponds à cette adresse.</span><input id="odMail" type="email" autocomplete="email" maxlength="80" required inputmode="email"></div>
+      <div class="field full"><label for="odAddr">Adresse de livraison</label><textarea id="odAddr" autocomplete="street-address" maxlength="200" placeholder="Rue et numéro, NPA et localité" required style="min-height:64px"></textarea></div>
+      <div class="field"><label for="odTel">Téléphone (facultatif)</label><input id="odTel" type="tel" autocomplete="tel" maxlength="30" inputmode="tel"></div>
+      <div class="field"><label for="odNote">Remarque (facultatif)</label><input id="odNote" maxlength="300"></div>
+    </div>
+    <input id="odBot" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px">
+    <div id="odStatus"></div>
+    <button class="btn" type="submit" id="odSend">Envoyer ma demande</button>
+    <p class="reply24">Je réponds toujours en 24 heures maximum, par e-mail.</p>
+  </form>
+</dialog>
 <a class="fab" id="fab" href="#" target="_blank" rel="noopener" aria-label="Me contacter sur WhatsApp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"></path></svg><span>Une question ?<small>Réponse en 24 h max</small></span></a>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -945,7 +967,45 @@ async function uploadSTL(f){
   }
   stlUp = {file: f, url}; return url;
 }
+/* Commande par e-mail (site en ligne) : fenêtre avec nom, e-mail, adresse */
+let odText = "", odFile = null;
+const stripTail = t => t.replace(/\n*Nom :\s*\nAdresse :\s*$/, "").trim();
+function openOrder(text, file){
+  odText = stripTail(text); odFile = file || null;
+  $("odSummary").textContent = odText.replace(STL_TOKEN, file ? "(le fichier part avec la demande)" : "").replace(/\n{3,}/g, "\n\n");
+  $("odStatus").innerHTML = ""; $("odSend").disabled = false; $("odSend").hidden = false;
+  const d = $("orderDlg"); if (d.showModal) d.showModal(); else d.setAttribute("open", "");
+  setTimeout(() => $("odName").focus(), 50);
+}
+$("odClose").addEventListener("click", () => $("orderDlg").close ? $("orderDlg").close() : $("orderDlg").removeAttribute("open"));
+$("orderForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const st = (m, k) => $("odStatus").innerHTML = m ? `<div class="status ${k}">${esc(m)}</div>` : "";
+  const name = $("odName").value.trim(), mail = $("odMail").value.trim(), addr = $("odAddr").value.trim();
+  if (!name || !addr) return st("Indiquez votre nom et votre adresse de livraison.", "err");
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) return st("Vérifiez votre adresse e-mail.", "err");
+  $("odSend").disabled = true;
+  let link = "";
+  if (odFile){
+    st("Envoi du fichier 3D…", "ok");
+    try { link = await uploadSTL(odFile); } catch(err){ $("odSend").disabled = false; return st("Le fichier n'a pas pu être envoyé : réessayez dans un instant.", "err"); }
+  }
+  st("Envoi de la demande…", "ok");
+  const commande = odText.replace(STL_TOKEN, link ? "Télécharger le fichier : " + link : "").replace(/\n{3,}/g, "\n\n");
+  try {
+    const r = await fetch("/", {method:"POST", headers:{"Content-Type":"application/x-www-form-urlencoded"},
+      body: new URLSearchParams({"form-name":"commande", "bot-field": $("odBot").value, nom: name, email: mail, telephone: $("odTel").value.trim(), adresse: addr, remarque: $("odNote").value.trim(), commande, fichier: link}).toString()});
+    if (!r.ok) throw 0;
+    st("Merci ! Votre demande m'est bien arrivée. Je vous réponds par e-mail en 24 heures maximum.", "ok");
+    $("odSend").hidden = true;
+  } catch(err){ st("L'envoi n'a pas fonctionné : réessayez, ou écrivez-moi sur WhatsApp.", "err"); $("odSend").disabled = false; }
+});
+document.addEventListener("click", e => {
+  const a = e.target.closest("[data-order]"); if (!a || !LIVE) return;
+  e.preventDefault(); openOrder(a.dataset.order, null);
+});
 $("customWa").addEventListener("click", async e => {
+  if (LIVE){ e.preventDefault(); return openOrder(orderText, state.mode === "file" && state.file && orderText.includes(STL_TOKEN) ? state.file : null); }
   if (!(state.mode === "file" && state.file && orderText.includes(STL_TOKEN))) return;
   e.preventDefault();
   const btn = $("customWa"), label = btn.textContent, w = window.open("about:blank", "_blank");
@@ -1211,9 +1271,9 @@ function renderShop(){
         <div class="ctags">${[...new Map(ps.map(pt => [pt.color, colorOf(pt.color)])).values()].map(c => `<span class="tag"><span class="sw" style="background:${esc(c.hex)}"></span>${c.mat} · ${esc(c.name)}</span>`).join("")}${ps.length > 1 ? `<span class="tag">${ps.reduce((n,pt) => n + (pt.qty||1), 0)} pièces</span>` : ""}${it.dims?`<span class="tag">${esc(it.dims)}</span>`:""}</div>
         <div class="card-actions">
           ${it.pay ? `<a class="btn sm" href="${esc(it.pay)}" target="_blank" rel="noopener">Payer avec TWINT</a>` : ""}
-          <a class="btn sm ${it.pay?"ghost":""}" href="${esc(waLink(msg))}" target="_blank" rel="noopener">${it.pay?"Une question":"Commander"}</a>
+          <a class="btn sm ${it.pay?"ghost":""}" href="${esc(waLink(msg))}" data-order="${esc(msg)}" target="_blank" rel="noopener">${it.pay?"Une question":"Commander"}</a>
         </div>
-        <a class="small" href="${esc(waLink(`Bonjour, je souhaite commander « ${it.name} » avec une personnalisation (+ ${chf(CONFIG.persoPrix)}) :\n\nPersonnalisation souhaitée :\nColoris :\nNom :\nAdresse :`))}" target="_blank" rel="noopener">Personnaliser cet objet (+ ${chf(CONFIG.persoPrix)})</a>
+        <a class="small" href="${esc(waLink(`Bonjour, je souhaite commander « ${it.name} » avec une personnalisation (+ ${chf(CONFIG.persoPrix)}) :\n\nPersonnalisation souhaitée :\nColoris :\nNom :\nAdresse :`))}" data-order="${esc(`Bonjour, je souhaite commander « ${it.name} » (${partsLabel(it)}) à ${chf(+it.price)}, livraison comprise, avec une personnalisation (+ ${chf(CONFIG.persoPrix)}).\n\nPersonnalisation souhaitée : (à préciser dans la remarque)`)}" target="_blank" rel="noopener">Personnaliser cet objet (+ ${chf(CONFIG.persoPrix)})</a>
       </div>
     </article>`;
   }).join("");
@@ -1290,6 +1350,9 @@ async function loadLiveReviews(){
     if (!r.ok || !(r.headers.get("content-type")||"").includes("json")) return;
     const list = await r.json(); if (!Array.isArray(list)) return;
     LIVE = true; liveReviews = list;
+    $("customWa").textContent = "Envoyer ma demande"; $("customWa").removeAttribute("target");
+    const rp = $("customWa").parentElement.querySelector(".reply24"); if (rp) rp.textContent = "Je réponds toujours en 24 heures maximum, par e-mail.";
+    if (state.mode === "file" && state.model) $("rAfter").textContent = "Votre fichier .stl part avec la demande : rien à joindre.";
     $("myReviewWa").hidden = true; $("myReviewPost").hidden = false;
     $("myNote").textContent = "Votre avis est publié tout de suite sur le site.";
     $("ownerBox").hidden = false; showOwner();
