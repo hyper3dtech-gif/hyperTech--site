@@ -1092,13 +1092,13 @@ $("orderForm").addEventListener("submit", async e => {
   st("Envoi de la demande…", "ok");
   const oid = newOrderId(), payNow = !!(odOpts.amount > 0 && !odOpts.quote);
   const commande = `Commande ${oid}\nPaiement : ${payNow ? "TWINT immédiat, " + chf(odOpts.amount) : "après confirmation du prix"}\n\n` + odText.replace(STL_TOKEN, link ? "Télécharger le fichier : " + link : "").replace(/\n{3,}/g, "\n\n");
-  let mailed = false;
-  try { const rc = await fetch("/api/commande", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({id: oid, amount: payNow ? odOpts.amount : null, quote: !payNow, summary: odOpts.summary || "", name, email: mail, details: odText.replace("\n" + STL_TOKEN, "").replace(STL_TOKEN, "").replace(/^Bonjour[^\n]*\n+/, "").replace(/\n{3,}/g, "\n\n").trim() + `\n\nLivraison à : ${addr}\nTéléphone : ${$("odTel").value.trim()}`})}); if (rc.ok) mailed = !!(await rc.json()).mailed; } catch(err){}
+  let mailed = false, saved = false;
+  try { const rc = await fetch("/api/commande", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({id: oid, amount: payNow ? odOpts.amount : null, quote: !payNow, summary: odOpts.summary || "", name, email: mail, phone: $("odTel").value.trim(), address: addr, note: $("odNote").value.trim(), file: link, full: commande, details: odText.replace("\n" + STL_TOKEN, "").replace(STL_TOKEN, "").replace(/^Bonjour[^\n]*\n+/, "").replace(/\n{3,}/g, "\n\n").trim() + `\n\nLivraison à : ${addr}\nTéléphone : ${$("odTel").value.trim()}`})}); if (rc.ok){ saved = true; mailed = !!(await rc.json()).mailed; } } catch(err){}
   saveMine({id: oid, amount: payNow ? odOpts.amount : null, quote: !payNow, summary: odOpts.summary || "", at: new Date().toISOString()});
   try {
     const r = await fetch("/", {method:"POST", headers:{"Content-Type":"application/x-www-form-urlencoded"},
-      body: new URLSearchParams({"form-name":"commande", "bot-field": $("odBot").value, numero: oid, nom: name, email: mail, telephone: $("odTel").value.trim(), adresse: addr, remarque: $("odNote").value.trim(), commande, fichier: link}).toString()});
-    if (!r.ok) throw 0;
+      body: new URLSearchParams({"form-name":"commande", "bot-field": $("odBot").value, numero: oid, nom: name, email: mail, telephone: $("odTel").value.trim(), adresse: addr, remarque: $("odNote").value.trim(), commande, fichier: link}).toString()}).catch(() => ({ok:false}));
+    if (!r.ok && !saved) throw 0;
     st("", "");
     odSent = true; $("odSend").hidden = true; $("odAlert").hidden = true; $("odReq").hidden = true; $("odLeave").hidden = true;
     $("odStep2").className = "done"; $("odStep3").className = "cur";
@@ -1519,7 +1519,8 @@ async function loadAdminOrders(){
     const list = await r.json();
     $("trkAdmin").innerHTML = `<h3 style="margin-top:18px">Mes commandes <span class="tag solid">visible par vous seule</span></h3>` + (list.length ? list.map(o => {
       const last = o.steps[o.steps.length-1].s;
-      return `<div class="trk-admin-row" data-oid="${esc(o.id)}"><div><b>${esc(o.id)}</b> · ${esc(o.name || "")} · ${esc(o.summary || "")}${o.amount ? " · " + chf(o.amount) : " · sur devis"}<br><small class="muted">Reçue le ${fmtDT(o.created)} · étape actuelle : ${STEP_LABEL[last]}</small></div>
+      return `<div class="trk-admin-row" data-oid="${esc(o.id)}"><div><b>${esc(o.id)}</b> · ${esc(o.name || "")} · ${esc(o.summary || "")}${o.amount ? " · " + chf(o.amount) : " · sur devis"}<br><small class="muted">Reçue le ${fmtDT(o.created)} · étape actuelle : ${STEP_LABEL[last]}</small>
+        ${o.contact ? `<details style="margin-top:6px"><summary class="small" style="color:var(--glow);cursor:pointer">Voir le détail du client et de la commande</summary><div class="small" style="margin-top:6px;line-height:1.6">E-mail : <a href="mailto:${esc(o.contact.email)}">${esc(o.contact.email)}</a><br>Téléphone : <a href="tel:${esc(o.contact.phone)}">${esc(o.contact.phone)}</a><br>Adresse : ${esc(o.contact.address)}${o.contact.note ? "<br>Remarque : " + esc(o.contact.note) : ""}${o.file ? `<br><a class="btn sm" style="margin-top:6px" href="${esc(o.file)}">Télécharger le fichier .stl</a>` : ""}</div><pre style="white-space:pre-wrap;font:500 .8rem/1.5 var(--f-body);color:var(--hero-muted);background:#151a21;border-radius:10px;padding:10px;margin-top:8px">${esc(o.details || "")}</pre></details>` : ""}</div>
         <div class="ctl"><select data-k="status">${stepsFor(o).map(k => `<option value="${k}" ${k === last ? "selected" : ""}>${STEP_LABEL[k]}</option>`).join("")}</select>
         <input data-k="tracking" placeholder="N° de suivi La Poste" value="${esc(o.tracking || "")}">
         ${o.quote ? `<input data-k="amount" type="number" min="1" step="0.5" placeholder="Prix confirmé" value="${o.amount || ""}" style="max-width:150px">` : ""}
