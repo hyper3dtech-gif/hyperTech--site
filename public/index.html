@@ -524,6 +524,16 @@ button,input,select,textarea{font-family:inherit}
 .trk-admin-row .ctl{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .trk-admin-row select,.trk-admin-row input{max-width:240px}
 .owner-box .linkbtn{color:var(--hero-muted)}
+.mine-bar{background:var(--glow);color:var(--ink);font-size:.9rem;font-weight:600}
+.mine-bar .wrap{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding-block:8px}
+.mine-bar .btn{background:var(--ink);color:var(--hero-ink)}
+.mine-bar .linkbtn{color:var(--ink)}
+.mine-act{display:flex;gap:12px;align-items:center}
+.od-keep{border:1.5px solid #2b333e;border-radius:12px;padding:12px;font-size:.9rem}
+.trk-find{margin-top:14px;font-size:.92rem}
+.trk-find summary{color:var(--glow)}
+.trk-mine{display:grid;gap:8px;margin-top:14px}
+.trk-mine .it{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;border:1.5px solid #2b333e;border-radius:12px;padding:10px 12px}
 a{color:var(--accent)}
 </style>
 
@@ -575,6 +585,7 @@ a{color:var(--accent)}
   </nav>
 </header>
 
+<div class="mine-bar" id="mineBar" hidden><div class="wrap"><span id="mineTxt"></span><span class="mine-act"><a class="btn sm" id="mineGo" href="#suivi">Voir ma commande</a><button class="linkbtn" type="button" id="mineX" aria-label="Masquer">Masquer</button></span></div></div>
 <main id="top">
 <section class="hero" id="accueil" data-page>
   <div class="hero-band">
@@ -838,6 +849,15 @@ a{color:var(--accent)}
         <button class="btn" type="submit">Voir l'avancement</button>
       </form>
       <div id="trkOut"></div>
+      <div id="trkMine"></div>
+      <details class="trk-find"><summary>Numéro perdu ? Retrouvez vos commandes avec votre e-mail et votre téléphone</summary>
+        <form id="findForm" novalidate style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+          <input id="findMail" type="email" placeholder="E-mail utilisé pour la commande" autocomplete="email" style="max-width:280px">
+          <input id="findTel" type="tel" placeholder="Téléphone" autocomplete="tel" style="max-width:200px">
+          <button class="btn sm" type="submit">Retrouver</button>
+        </form>
+        <div id="findOut"></div>
+      </details>
       <div class="owner-box">
         <button class="linkbtn small" type="button" id="trkOwnerOpen">Accès propriétaire</button>
         <form id="trkOwnerForm" hidden novalidate style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px">
@@ -955,7 +975,8 @@ a{color:var(--accent)}
     <div class="od-next" id="odNext" hidden>
       <div id="odNextBody"></div>
       <div class="od-num">Votre numéro de commande : <b id="odNum"></b> <button class="btn ghost sm" type="button" data-copy-el="odNum">Copier</button></div>
-      <a class="btn ghost" id="odTrack" href="#suivi">Suivre ma commande</a>
+      <div class="od-keep"><b>Gardez votre suivi :</b> ce numéro reste enregistré sur cet appareil, et vous pouvez retrouver vos commandes avec votre e-mail et votre téléphone.
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><a class="btn sm" id="odTrack" href="#suivi">Suivre ma commande</a><button class="btn ghost sm" type="button" id="odCopyLink">Copier le lien de suivi</button><button class="btn ghost sm" type="button" id="odShare" hidden>M'envoyer le lien</button></div></div>
       <p class="small">Pas d'e-mail de ma part ? Regardez dans vos spams.</p>
       <button class="btn" type="button" id="odDone">J'ai compris</button>
     </div>
@@ -1079,7 +1100,8 @@ $("orderForm").addEventListener("submit", async e => {
   st("Envoi de la demande…", "ok");
   const oid = newOrderId(), payNow = !!(odOpts.amount > 0 && !odOpts.quote);
   const commande = `Commande ${oid}\nPaiement : ${payNow ? "TWINT immédiat, " + chf(odOpts.amount) : "après confirmation du prix"}\n\n` + odText.replace(STL_TOKEN, link ? "Télécharger le fichier : " + link : "").replace(/\n{3,}/g, "\n\n");
-  try { await fetch("/api/commande", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({id: oid, amount: payNow ? odOpts.amount : null, quote: !payNow, summary: odOpts.summary || "", name})}); } catch(err){}
+  try { await fetch("/api/commande", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({id: oid, amount: payNow ? odOpts.amount : null, quote: !payNow, summary: odOpts.summary || "", name, email: mail, phone: $("odTel").value})}); } catch(err){}
+  saveMine({id: oid, amount: payNow ? odOpts.amount : null, quote: !payNow, summary: odOpts.summary || "", at: new Date().toISOString()});
   try {
     const r = await fetch("/", {method:"POST", headers:{"Content-Type":"application/x-www-form-urlencoded"},
       body: new URLSearchParams({"form-name":"commande", "bot-field": $("odBot").value, numero: oid, nom: name, email: mail, telephone: $("odTel").value.trim(), adresse: addr, remarque: $("odNote").value.trim(), commande, fichier: link}).toString()});
@@ -1088,6 +1110,10 @@ $("orderForm").addEventListener("submit", async e => {
     odSent = true; $("odSend").hidden = true; $("odAlert").hidden = true; $("odReq").hidden = true; $("odLeave").hidden = true;
     $("odStep2").className = "done"; $("odStep3").className = "cur";
     $("odNum").textContent = oid; $("odTrack").href = "?commande=" + oid + "#suivi";
+    const tl = trackLink(oid);
+    $("odCopyLink").onclick = () => { try { navigator.clipboard.writeText(tl); $("odCopyLink").textContent = "Lien copié"; } catch(err){} };
+    $("odShare").hidden = !navigator.share;
+    $("odShare").onclick = () => navigator.share({title: "Ma commande Hyper Tech " + oid, text: `Ma commande Hyper Tech ${oid}${payNow ? " · à payer par TWINT : " + chf(odOpts.amount) + " au " + TWINT_NUM : ""}`, url: tl}).catch(() => {});
     $("odNextBody").innerHTML = payNow
       ? `<b>Dernière étape : payez maintenant par TWINT.</b>
          <div class="od-pay"><span>Montant à payer</span><span class="amt">${chf(odOpts.amount)}</span>
@@ -1448,6 +1474,38 @@ function renderReviews(){
     } catch(e){ b.disabled = false; b.textContent = "Échec : réessayez"; }
   }));
 }
+/* Mes commandes : gardées sur l'appareil, rappel en haut du site */
+const trackLink = id => location.origin + location.pathname + "?commande=" + id + "#suivi";
+function getMine(){ try { return JSON.parse(localStorage.getItem("ht-orders") || "[]"); } catch(e){ return []; } }
+function saveMine(o){ try { const l = getMine().filter(x => x.id !== o.id); l.unshift(o); localStorage.setItem("ht-orders", JSON.stringify(l.slice(0, 20))); } catch(e){} renderMine(); }
+function renderMine(){
+  const l = getMine();
+  $("trkMine").innerHTML = l.length ? `<div class="trk-mine"><span class="legend">Vos commandes sur cet appareil</span>${l.map(o => `<div class="it"><span><b>${esc(o.id)}</b> · ${esc(o.summary || "")}${o.amount ? " · " + chf(o.amount) : " · prix confirmé par e-mail"}<br><small class="muted">${fmtDT(o.at)}</small></span><button class="btn sm" type="button" data-look="${esc(o.id)}">Voir le suivi</button></div>`).join("")}</div>` : "";
+  $("trkMine").querySelectorAll("[data-look]").forEach(b => b.addEventListener("click", () => { $("trkId").value = b.dataset.look; lookupOrder(b.dataset.look); $("trkOut").scrollIntoView({behavior:"smooth", block:"nearest"}); }));
+}
+async function mineBanner(){
+  const l = getMine(); let hidden = []; try { hidden = JSON.parse(localStorage.getItem("ht-orders-hidden") || "[]"); } catch(e){}
+  const o = l.find(x => !hidden.includes(x.id) && Date.now() - new Date(x.at) < 60*864e5); if (!o) return;
+  try {
+    const r = await fetch("/api/commande?id=" + encodeURIComponent(o.id), {cache:"no-store"}); if (!r.ok) return;
+    const d = await r.json(), last = d.steps[d.steps.length-1].s, paid = d.steps.some(x => x.s === "payee");
+    if (last === "envoyee" && Date.now() - new Date(d.steps[d.steps.length-1].at) > 14*864e5) return;
+    $("mineTxt").innerHTML = `Votre commande <b>${esc(d.id)}</b> : ${!paid && d.amount && !d.quote ? `à payer par TWINT, <b>${chf(d.amount)}</b> au ${esc(TWINT_NUM)} (message « ${esc(d.id)} »)` : !paid && d.quote && d.amount ? `prix confirmé, <b>${chf(d.amount)}</b> à payer par TWINT au ${esc(TWINT_NUM)}` : esc(STEP_LABEL[last])}`;
+    $("mineGo").href = "?commande=" + d.id + "#suivi"; $("mineBar").hidden = false;
+    $("mineX").onclick = () => { $("mineBar").hidden = true; try { localStorage.setItem("ht-orders-hidden", JSON.stringify(hidden.concat(d.id))); } catch(e){} };
+  } catch(e){}
+}
+$("findForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  $("findOut").innerHTML = `<p class="small muted">Recherche…</p>`;
+  try {
+    const r = await fetch("/api/commande?find=1", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({email: $("findMail").value, phone: $("findTel").value})});
+    if (!r.ok) throw new Error(r.status === 400 || r.status === 429 ? await r.text() : "Recherche indisponible : réessayez.");
+    const list = await r.json();
+    $("findOut").innerHTML = list.length ? list.map(trackHtml).join("") : `<div class="status err" style="margin-top:10px">Aucune commande trouvée avec cet e-mail et ce téléphone. Vérifiez qu'ils sont identiques à ceux de votre commande.</div>`;
+    list.forEach(o => saveMine({id: o.id, amount: o.amount, quote: o.quote, summary: o.summary, at: o.created}));
+  } catch(err){ $("findOut").innerHTML = `<div class="status err" style="margin-top:10px">${esc(err.message)}</div>`; }
+});
 const STEP_LABEL = {recue:"Demande reçue", devis:"Prix confirmé par e-mail", payee:"Paiement reçu", impression:"En cours d'impression", imprimee:"Imprimée et contrôlée", envoyee:"Envoyée par La Poste"};
 const stepsFor = o => o.quote ? ["recue","devis","payee","impression","imprimee","envoyee"] : ["recue","payee","impression","imprimee","envoyee"];
 const fmtDT = iso => new Date(iso).toLocaleString("fr-CH", {day:"numeric", month:"long", hour:"2-digit", minute:"2-digit"});
@@ -1520,7 +1578,7 @@ async function loadLiveReviews(){
     $("myReviewWa").hidden = true; $("myReviewPost").hidden = false;
     $("myNote").textContent = "Votre avis est publié tout de suite sur le site.";
     $("ownerBox").hidden = false; showOwner();
-    $("suivi").hidden = false; loadAdminOrders();
+    $("suivi").hidden = false; loadAdminOrders(); renderMine(); mineBanner();
     const qid = new URLSearchParams(location.search).get("commande");
     if (qid){ $("trkId").value = qid; lookupOrder(qid); route("suivi"); }
     renderReviews();

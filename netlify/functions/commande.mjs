@@ -10,6 +10,7 @@ const isAdmin = req => sha(req.headers.get("x-admin-key") || "") === ADMIN_HASH;
 const ID = /^HT-\d{4}-[A-Z0-9]{6}$/;
 const STATUSES = ["recue", "devis", "payee", "impression", "imprimee", "envoyee"];
 const clean = (s, n) => String(s || "").replace(/[\u0000-\u0009\u000b-\u001f\u007f]/g, " ").trim().slice(0, n);
+const contactKey = (mail, tel) => { const m = String(mail || "").trim().toLowerCase(), t = String(tel || "").replace(/\D/g, "").replace(/^(00)?41/, "0"); return m && t.length >= 9 ? sha(m + "|" + t + "|hypertech") : ""; };
 const pub = o => ({ id: o.id, created: o.created, quote: o.quote, amount: o.amount, summary: o.summary, steps: o.steps, tracking: o.tracking || "" });
 
 export default async (req, context) => {
@@ -31,6 +32,20 @@ export default async (req, context) => {
     return Response.json(pub(o), { headers: { "Cache-Control": "no-store" } });
   }
 
+  if (req.method === "POST" && url.searchParams.has("find")) {
+    let d; try { d = await req.json(); } catch { return new Response("Demande invalide", { status: 400 }); }
+    const key = contactKey(d.email, d.phone);
+    if (!key) return new Response("Indiquez votre e-mail et votre téléphone.", { status: 400 });
+    const who = sha((context.ip || "?") + "find");
+    const rl = ((await store.get("rf/" + who, { type: "json" })) || []).filter(t => t > Date.now() - 36e5);
+    if (rl.length >= 10) return new Response("Trop de recherches : réessayez dans une heure.", { status: 429 });
+    await store.setJSON("rf/" + who, rl.concat(Date.now()));
+    const { blobs } = await store.list({ prefix: "c/" });
+    const list = (await Promise.all(blobs.map(b => store.get(b.key, { type: "json" })))).filter(o => o && o.ck === key);
+    list.sort((a, b) => b.created.localeCompare(a.created));
+    return Response.json(list.map(pub));
+  }
+
   if (req.method === "POST") {
     let d; try { d = await req.json(); } catch { return new Response("Demande invalide", { status: 400 }); }
     const oid = String(d.id || "").toUpperCase();
@@ -43,7 +58,7 @@ export default async (req, context) => {
     await store.setJSON("rl/" + who, recent.concat(Date.now()));
     const now = new Date().toISOString();
     const amount = Number(d.amount) > 0 && Number(d.amount) < 10000 ? Math.round(Number(d.amount) * 100) / 100 : null;
-    const o = { id: oid, created: now, quote: !!d.quote, amount, summary: clean(d.summary, 160), name: clean(d.name, 60), steps: [{ s: "recue", at: now }], tracking: "" };
+    const o = { id: oid, created: now, quote: !!d.quote, amount, summary: clean(d.summary, 160), name: clean(d.name, 60), ck: contactKey(d.email, d.phone), steps: [{ s: "recue", at: now }], tracking: "" };
     await store.setJSON("c/" + oid, o);
     return Response.json(pub(o), { status: 201 });
   }
