@@ -11,7 +11,7 @@
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 </head>
 <body>
-<form name="commande" data-netlify="true" netlify-honeypot="bot-field" hidden><input name="bot-field"><input name="nom"><input name="email"><input name="telephone"><textarea name="adresse"></textarea><textarea name="remarque"></textarea><textarea name="commande"></textarea><input name="fichier"></form>
+<form name="commande" data-netlify="true" netlify-honeypot="bot-field" hidden><input name="bot-field"><input name="numero"><input name="nom"><input name="email"><input name="telephone"><textarea name="adresse"></textarea><textarea name="remarque"></textarea><textarea name="commande"></textarea><input name="fichier"></form>
 
 
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap">
@@ -502,6 +502,28 @@ button,input,select,textarea{font-family:inherit}
 .od-next>b{color:var(--glow)}
 .od-next ol{margin:0;padding-left:1.2em;display:grid;gap:6px;font-size:.92rem}
 .req{color:var(--glow)}
+.od-pay{display:grid;gap:8px;border-radius:12px;background:var(--glow);color:var(--ink);padding:14px}
+.od-pay .amt{font:800 2rem/1 var(--f-display);font-variant-numeric:tabular-nums}
+.od-pay .row{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;background:rgba(255,255,255,.55);border-radius:10px;padding:8px 10px;font-weight:700}
+.od-pay .btn{background:var(--ink);color:var(--hero-ink)}
+.od-num{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:.92rem}
+.od-num b{color:var(--glow);font-size:1.05rem;letter-spacing:.03em}
+.od-next .btn.ghost,.suivi .btn.ghost{color:var(--hero-ink);border-color:#3a434f}
+.trk-steps{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:0}
+.trk-steps li{display:grid;grid-template-columns:26px 1fr;gap:10px;align-items:start;padding-bottom:14px;position:relative}
+.trk-steps li::before{content:"";position:absolute;left:12px;top:24px;bottom:0;width:2px;background:#2b333e}
+.trk-steps li:last-child::before{display:none}
+.trk-steps i{width:26px;height:26px;border-radius:50%;border:2px solid #3a434f;display:grid;place-items:center;font-style:normal;font-size:.78rem;font-weight:800;color:var(--hero-muted);background:var(--hero);position:relative;z-index:1}
+.trk-steps li.ok i{background:var(--glow);border-color:var(--glow);color:var(--ink)}
+.trk-steps li.ok::before{background:var(--glow)}
+.trk-steps li.now i{box-shadow:0 0 0 5px rgba(90,209,240,.25)}
+.trk-steps b{display:block}
+.trk-steps small{display:block;color:var(--hero-muted)}
+.trk-card{display:grid;gap:6px;border:1.5px solid #2b333e;border-radius:12px;padding:12px;margin-top:10px}
+.trk-admin-row{display:grid;gap:8px;border:1.5px solid #2b333e;border-radius:12px;padding:12px}
+.trk-admin-row .ctl{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.trk-admin-row select,.trk-admin-row input{max-width:240px}
+.owner-box .linkbtn{color:var(--hero-muted)}
 a{color:var(--accent)}
 </style>
 
@@ -576,7 +598,7 @@ a{color:var(--accent)}
       <a class="offer" href="#boutique"><span class="tag">Prêt à commander</span><h3>La boutique</h3><p>Les créations de la semaine, à tourner en 3D et à commander en un clic.</p><b class="go">Voir la boutique →</b></a>
     </nav>
     <div class="trust" aria-label="Commander en confiance">
-      <div><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></span><span><b>Prix confirmé avant tout</b>Je vérifie votre modèle et vous confirme le prix exact.</span></div>
+      <div><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></span><span><b>Prix clair</b>Avec un fichier .stl, le prix s'affiche tout de suite. Pour un lien ou une création, je vous le confirme par e-mail.</span></div>
       <div><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2"></rect><path d="M3 10h18"></path></svg></span><span><b>Paiement simple</b>Par TWINT ou par virement.</span></div>
       <div><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"></path><path d="M3 7l9 4 9-4M12 11v10"></path></svg></span><span><b>Envoi suivi La Poste</b>Pièces contrôlées, emballées et suivies jusqu'à chez vous.</span></div>
       <div><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"></path></svg></span><span><b>Contact direct</b>Une vraie personne vous répond sur WhatsApp.</span></div>
@@ -650,7 +672,7 @@ a{color:var(--accent)}
     <div class="head">
       <span class="eyebrow">Sur mesure</span>
       <h2>Importez votre modèle, voyez le prix.</h2>
-      <p class="muted">Je confirme le prix final après avoir vérifié votre fichier.</p>
+      <p class="muted">Avec un fichier .stl, le prix affiché est le prix à payer. Avec un lien ou une création, je vous confirme le prix par e-mail.</p>
       <div><button class="btn sm ghost" type="button" id="openSettings" hidden>Réglages des prix</button></div>
     </div>
     <form class="atelier" id="settingsPanel" hidden novalidate>
@@ -802,11 +824,28 @@ a{color:var(--accent)}
       <div class="panel">
         <h3>Paiement à l'avance</h3>
         <div class="pay">
-          <div><span class="tag">TWINT</span><span>Lien de paiement</span></div>
+          <div><span class="tag">TWINT</span><span>Juste après votre commande, montant indiqué sur le site</span></div>
           <div><span class="tag">VIREMENT</span><span>QR-facture</span></div>
           <div><span class="tag warn">ESPÈCES</span><span>Non acceptées</span></div>
         </div>
       </div>
+    </div>
+    <div class="panel suivi" id="suivi" hidden style="margin-top:16px">
+      <h3>Suivre ma commande</h3>
+      <p class="small muted">Entrez le numéro reçu après votre commande (par exemple HT-2611-AB12CD).</p>
+      <form id="trkForm" novalidate style="display:flex;gap:8px;flex-wrap:wrap">
+        <input id="trkId" placeholder="HT-…" maxlength="20" autocomplete="off" style="max-width:260px;text-transform:uppercase">
+        <button class="btn" type="submit">Voir l'avancement</button>
+      </form>
+      <div id="trkOut"></div>
+      <div class="owner-box">
+        <button class="linkbtn small" type="button" id="trkOwnerOpen">Accès propriétaire</button>
+        <form id="trkOwnerForm" hidden novalidate style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px">
+          <input id="trkOwnerPw" type="password" autocomplete="current-password" placeholder="Mot de passe" style="max-width:240px">
+          <button class="btn sm" type="submit">Entrer</button><span class="small muted" id="trkOwnerMsg"></span>
+        </form>
+      </div>
+      <div id="trkAdmin" hidden></div>
     </div>
   </div>
 </section>
@@ -887,7 +926,7 @@ a{color:var(--accent)}
   <div class="foot">
     <div><b style="color:var(--ink)">Hyper Tech</b><p class="small" style="margin-top:6px">Impression 3D en PLA et PETG, envoyée partout en Suisse.</p></div>
     <div><h4>Commander</h4><a href="#sur-mesure">Mon modèle 3D</a><a href="#boutique">Boutique</a><a href="#guide">Guide</a></div>
-    <div><h4>Infos</h4><a href="#coloris">Coloris</a><a href="#livraison">Livraison et paiement</a><a href="#avis">Avis et questions</a></div>
+    <div><h4>Infos</h4><a href="#coloris">Coloris</a><a href="#livraison">Livraison et paiement</a><a href="#avis">Avis et questions</a><a href="#suivi">Suivre ma commande</a></div>
     <div><h4>Contact</h4><a id="footWa" href="#" target="_blank" rel="noopener">WhatsApp</a><a href="#questions">Écrivez-moi</a><a class="foot-contact" href="tel:+41796150203">+41 79 615 02 03</a><a class="foot-contact" href="mailto:hyper3dtech@gmail.com">hyper3dtech@gmail.com</a></div>
   </div>
   <div class="foot-bottom"><span>© <span id="yr"></span> Hyper Tech · Impression 3D en Suisse</span><span>PLA &amp; PETG · Max 21 × 21 × 20 cm · Envoi La Poste</span></div>
@@ -914,12 +953,9 @@ a{color:var(--accent)}
     <button class="btn" type="submit" id="odSend">Envoyer ma demande</button>
     <p class="small muted" id="odReq"><span class="req">*</span> obligatoire</p>
     <div class="od-next" id="odNext" hidden>
-      <b>Votre demande est envoyée, mais la commande n'est pas encore terminée.</b>
-      <ol>
-        <li>Je vérifie votre modèle et vous confirme le prix exact <b>par e-mail, en 24 heures maximum</b>.</li>
-        <li>Vous payez par TWINT ou par virement, selon les indications de mon e-mail.</li>
-        <li>J'imprime votre pièce et je vous l'envoie par La Poste, avec un numéro de suivi.</li>
-      </ol>
+      <div id="odNextBody"></div>
+      <div class="od-num">Votre numéro de commande : <b id="odNum"></b> <button class="btn ghost sm" type="button" data-copy-el="odNum">Copier</button></div>
+      <a class="btn ghost" id="odTrack" href="#suivi">Suivre ma commande</a>
       <p class="small">Pas d'e-mail de ma part ? Regardez dans vos spams.</p>
       <button class="btn" type="button" id="odDone">J'ai compris</button>
     </div>
@@ -1003,12 +1039,15 @@ async function uploadSTL(f){
   stlUp = {file: f, url}; return url;
 }
 /* Commande par e-mail (site en ligne) : fenêtre avec nom, e-mail, adresse */
-let odText = "", odFile = null, odSent = false;
+let odText = "", odFile = null, odSent = false, odOpts = {};
+const TWINT_NUM = CONFIG.whatsappAffiche;
+const newOrderId = () => { const d = new Date(), a = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; let r = ""; const u = new Uint32Array(6); crypto.getRandomValues(u); u.forEach(x => r += a[x % a.length]); return `HT-${String(d.getDate()).padStart(2,"0")}${String(d.getMonth()+1).padStart(2,"0")}-${r}`; };
+document.addEventListener("click", e => { const b = e.target.closest("[data-copy],[data-copy-el]"); if (!b) return; const t = b.dataset.copy || $(b.dataset.copyEl).textContent; try { navigator.clipboard.writeText(t); const o = b.textContent; b.textContent = "Copié"; setTimeout(() => b.textContent = o, 1500); } catch(err){} });
 const odShut = () => { const d = $("orderDlg"); d.close ? d.close() : d.removeAttribute("open"); $("odPending").hidden = odSent || !LIVE; };
 function odTryClose(){ if (odSent) return odShut(); $("odLeave").hidden = false; $("odLeave").scrollIntoView({block:"nearest"}); }
 const stripTail = t => t.replace(/\n*Nom :\s*\nAdresse :\s*$/, "").trim();
-function openOrder(text, file){
-  odText = stripTail(text); odFile = file || null;
+function openOrder(text, file, opts){
+  odText = stripTail(text); odFile = file || null; odOpts = opts || {};
   $("odSummary").textContent = odText.replace(STL_TOKEN, file ? "(le fichier part avec la demande)" : "").replace(/\n{3,}/g, "\n\n");
   $("odStatus").innerHTML = ""; $("odSend").disabled = false; $("odSend").hidden = false;
   odSent = false; $("odNext").hidden = true; $("odLeave").hidden = true; $("odAlert").hidden = false; $("odReq").hidden = false;
@@ -1038,23 +1077,39 @@ $("orderForm").addEventListener("submit", async e => {
     try { link = await uploadSTL(odFile); } catch(err){ $("odSend").disabled = false; return st("Le fichier n'a pas pu être envoyé : réessayez dans un instant.", "err"); }
   }
   st("Envoi de la demande…", "ok");
-  const commande = odText.replace(STL_TOKEN, link ? "Télécharger le fichier : " + link : "").replace(/\n{3,}/g, "\n\n");
+  const oid = newOrderId(), payNow = !!(odOpts.amount > 0 && !odOpts.quote);
+  const commande = `Commande ${oid}\nPaiement : ${payNow ? "TWINT immédiat, " + chf(odOpts.amount) : "après confirmation du prix"}\n\n` + odText.replace(STL_TOKEN, link ? "Télécharger le fichier : " + link : "").replace(/\n{3,}/g, "\n\n");
+  try { await fetch("/api/commande", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({id: oid, amount: payNow ? odOpts.amount : null, quote: !payNow, summary: odOpts.summary || "", name})}); } catch(err){}
   try {
     const r = await fetch("/", {method:"POST", headers:{"Content-Type":"application/x-www-form-urlencoded"},
-      body: new URLSearchParams({"form-name":"commande", "bot-field": $("odBot").value, nom: name, email: mail, telephone: $("odTel").value.trim(), adresse: addr, remarque: $("odNote").value.trim(), commande, fichier: link}).toString()});
+      body: new URLSearchParams({"form-name":"commande", "bot-field": $("odBot").value, numero: oid, nom: name, email: mail, telephone: $("odTel").value.trim(), adresse: addr, remarque: $("odNote").value.trim(), commande, fichier: link}).toString()});
     if (!r.ok) throw 0;
     st("", "");
     odSent = true; $("odSend").hidden = true; $("odAlert").hidden = true; $("odReq").hidden = true; $("odLeave").hidden = true;
     $("odStep2").className = "done"; $("odStep3").className = "cur";
+    $("odNum").textContent = oid; $("odTrack").href = "?commande=" + oid + "#suivi";
+    $("odNextBody").innerHTML = payNow
+      ? `<b>Dernière étape : payez maintenant par TWINT.</b>
+         <div class="od-pay"><span>Montant à payer</span><span class="amt">${chf(odOpts.amount)}</span>
+           <div class="row"><span>Envoyez-le par TWINT au ${esc(TWINT_NUM)}</span><button class="btn sm" type="button" data-copy="${esc(TWINT_NUM.replace(/\s/g, ""))}">Copier le numéro</button></div>
+           <div class="row"><span>Message à indiquer : ${oid}</span><button class="btn sm" type="button" data-copy="${oid}">Copier</button></div></div>
+         <ol><li>Dès que je reçois votre paiement, je lance l'impression.</li><li>Je vous envoie votre pièce par La Poste, avec un numéro de suivi.</li><li>Vous suivez chaque étape avec votre numéro de commande.</li></ol>
+         <p class="small">Si votre modèle pose un problème d'impression, je vous contacte par e-mail avant de l'imprimer.</p>`
+      : `<b>Votre demande est envoyée. Ne payez pas encore.</b>
+         <ol><li>Je vérifie votre demande et vous envoie le prix exact <b>par e-mail, en 24 heures maximum</b>.</li><li>Vous payez ensuite par TWINT, selon mon e-mail.</li><li>J'imprime votre pièce et je vous l'envoie par La Poste, avec un numéro de suivi.</li></ol>`;
     $("odNext").hidden = false; $("odNext").scrollIntoView({block:"nearest"}); $("odPending").hidden = true;
   } catch(err){ st("L'envoi n'a pas fonctionné : réessayez, ou écrivez-moi sur WhatsApp.", "err"); $("odSend").disabled = false; }
 });
 document.addEventListener("click", e => {
   const a = e.target.closest("[data-order]"); if (!a || !LIVE) return;
-  e.preventDefault(); openOrder(a.dataset.order, null);
+  e.preventDefault(); openOrder(a.dataset.order, null, {amount: +a.dataset.amount || 0, quote: !a.dataset.amount, summary: a.dataset.summary || ""});
 });
 $("customWa").addEventListener("click", async e => {
-  if (LIVE){ e.preventDefault(); return openOrder(orderText, state.mode === "file" && state.file && orderText.includes(STL_TOKEN) ? state.file : null); }
+  if (LIVE){
+    e.preventDefault();
+    const isFile = state.mode === "file" && state.file && orderText.includes(STL_TOKEN);
+    return openOrder(orderText, isFile ? state.file : null, {amount: isFile ? state.total : 0, quote: !(isFile && state.total > 0), summary: state.mode === "file" && state.model ? `Fichier ${state.model.name} · ${colorOf(state.color).mat} ${colorOf(state.color).name}` : state.mode === "link" ? "Lien Printables" : "Création personnalisée"});
+  }
   if (!(state.mode === "file" && state.file && orderText.includes(STL_TOKEN))) return;
   e.preventDefault();
   const btn = $("customWa"), label = btn.textContent, w = window.open("about:blank", "_blank");
@@ -1155,7 +1210,7 @@ const SUBS = {
   "boutique":   [["Créations de la semaine", "#shop"]],
   "coloris":    [["Couleurs et stock", "#colors"], ["PLA ou PETG", ".mats"]],
   "guide":      [["Je cherche un modèle", guideTab("find")], ["Télécharger le .stl", guideTab("stl")], ["Envoyer le lien", guideTab("link")]],
-  "livraison":  [["Tarifs La Poste", "#livraison .info > .panel:first-child"], ["Paiement", "#livraison .info > .panel:last-child"]],
+  "livraison":  [["Tarifs La Poste", "#livraison .info > .panel:first-child"], ["Paiement", "#livraison .info > .panel:last-child"], ["Suivre ma commande", "#suivi"]],
   "avis":       [["Lire les avis", "#reviewList"], ["Laisser un avis", "#avis .reviews > .panel"], ["Questions fréquentes", "#questions"], ["Écrivez-moi", "#questions > .panel"]]
 };
 const smooth = () => matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
@@ -1320,7 +1375,7 @@ function renderShop(){
         <div class="ctags">${[...new Map(ps.map(pt => [pt.color, colorOf(pt.color)])).values()].map(c => `<span class="tag"><span class="sw" style="background:${esc(c.hex)}"></span>${c.mat} · ${esc(c.name)}</span>`).join("")}${ps.length > 1 ? `<span class="tag">${ps.reduce((n,pt) => n + (pt.qty||1), 0)} pièces</span>` : ""}${it.dims?`<span class="tag">${esc(it.dims)}</span>`:""}</div>
         <div class="card-actions">
           ${it.pay ? `<a class="btn sm" href="${esc(it.pay)}" target="_blank" rel="noopener">Payer avec TWINT</a>` : ""}
-          <a class="btn sm ${it.pay?"ghost":""}" href="${esc(waLink(msg))}" data-order="${esc(msg)}" target="_blank" rel="noopener">${it.pay?"Une question":"Commander"}</a>
+          <a class="btn sm ${it.pay?"ghost":""}" href="${esc(waLink(msg))}" data-order="${esc(msg)}" data-amount="${+it.price}" data-summary="${esc("Boutique : " + it.name)}" target="_blank" rel="noopener">${it.pay?"Une question":"Commander"}</a>
         </div>
         <a class="small" href="${esc(waLink(`Bonjour, je souhaite commander « ${it.name} » avec une personnalisation (+ ${chf(CONFIG.persoPrix)}) :\n\nPersonnalisation souhaitée :\nColoris :\nNom :\nAdresse :`))}" data-order="${esc(`Bonjour, je souhaite commander « ${it.name} » (${partsLabel(it)}) à ${chf(+it.price)}, livraison comprise, avec une personnalisation (+ ${chf(CONFIG.persoPrix)}).\n\nPersonnalisation souhaitée : (à préciser dans la remarque)`)}" target="_blank" rel="noopener">Personnaliser cet objet (+ ${chf(CONFIG.persoPrix)})</a>
       </div>
@@ -1393,6 +1448,66 @@ function renderReviews(){
     } catch(e){ b.disabled = false; b.textContent = "Échec : réessayez"; }
   }));
 }
+const STEP_LABEL = {recue:"Demande reçue", devis:"Prix confirmé par e-mail", payee:"Paiement reçu", impression:"En cours d'impression", imprimee:"Imprimée et contrôlée", envoyee:"Envoyée par La Poste"};
+const stepsFor = o => o.quote ? ["recue","devis","payee","impression","imprimee","envoyee"] : ["recue","payee","impression","imprimee","envoyee"];
+const fmtDT = iso => new Date(iso).toLocaleString("fr-CH", {day:"numeric", month:"long", hour:"2-digit", minute:"2-digit"});
+function trackHtml(o){
+  const done = Object.fromEntries(o.steps.map(x => [x.s, x.at])), list = stepsFor(o), last = o.steps[o.steps.length-1].s;
+  return `<div class="trk-card"><div><b>Commande ${esc(o.id)}</b>${o.summary ? ` · <span class="muted">${esc(o.summary)}</span>` : ""}</div>
+    ${o.amount && !done.payee ? `<div class="small">À payer par TWINT : <b>${chf(o.amount)}</b> au ${esc(TWINT_NUM)}, message « ${esc(o.id)} »</div>` : ""}
+    <ol class="trk-steps">${list.map((k, i) => `<li class="${done[k] ? "ok" : ""} ${k === last ? "now" : ""}"><i>${done[k] ? "✓" : i+1}</i><span><b>${STEP_LABEL[k]}</b><small>${done[k] ? fmtDT(done[k]) : "à venir"}</small>${k === "envoyee" && o.tracking ? `<small>Numéro de suivi : <b>${esc(o.tracking)}</b></small><small><a href="https://service.post.ch/ekp-web/ui/entry/search/${encodeURIComponent(o.tracking)}" target="_blank" rel="noopener">suivre sur post.ch</a></small>` : ""}</span></li>`).join("")}</ol></div>`;
+}
+async function lookupOrder(id){
+  id = id.trim().toUpperCase(); if (!id) return;
+  $("trkOut").innerHTML = `<p class="small muted">Recherche…</p>`;
+  try {
+    const r = await fetch("/api/commande?id=" + encodeURIComponent(id), {cache:"no-store"});
+    if (r.status === 404 || r.status === 400) throw new Error("Aucune commande trouvée avec ce numéro. Vérifiez-le, il ressemble à HT-2611-AB12CD.");
+    if (!r.ok) throw new Error("Suivi indisponible pour le moment : réessayez.");
+    $("trkOut").innerHTML = trackHtml(await r.json());
+  } catch(err){ $("trkOut").innerHTML = `<div class="status err" style="margin-top:10px">${esc(err.message)}</div>`; }
+}
+$("trkForm").addEventListener("submit", e => { e.preventDefault(); lookupOrder($("trkId").value); });
+async function loadAdminOrders(){
+  if (!adminKey){ $("trkAdmin").hidden = true; $("trkOwnerOpen").hidden = false; return; }
+  $("trkOwnerOpen").hidden = true; $("trkOwnerForm").hidden = true; $("trkAdmin").hidden = false;
+  $("trkAdmin").innerHTML = `<p class="small muted">Chargement des commandes…</p>`;
+  try {
+    const r = await fetch("/api/commande?all=1", {headers:{"x-admin-key": adminKey}, cache:"no-store"});
+    if (!r.ok) throw 0;
+    const list = await r.json();
+    $("trkAdmin").innerHTML = `<h3 style="margin-top:18px">Mes commandes <span class="tag solid">visible par vous seule</span></h3>` + (list.length ? list.map(o => {
+      const last = o.steps[o.steps.length-1].s;
+      return `<div class="trk-admin-row" data-oid="${esc(o.id)}"><div><b>${esc(o.id)}</b> · ${esc(o.name || "")} · ${esc(o.summary || "")}${o.amount ? " · " + chf(o.amount) : " · sur devis"}<br><small class="muted">Reçue le ${fmtDT(o.created)} · étape actuelle : ${STEP_LABEL[last]}</small></div>
+        <div class="ctl"><select data-k="status">${stepsFor(o).map(k => `<option value="${k}" ${k === last ? "selected" : ""}>${STEP_LABEL[k]}</option>`).join("")}</select>
+        <input data-k="tracking" placeholder="N° de suivi La Poste" value="${esc(o.tracking || "")}">
+        ${o.quote ? `<input data-k="amount" type="number" min="1" step="0.5" placeholder="Prix confirmé" value="${o.amount || ""}" style="max-width:150px">` : ""}
+        <button class="btn sm" type="button" data-k="save">Mettre à jour</button><button class="btn ghost sm" type="button" data-k="del">Supprimer</button><span class="small" data-k="msg"></span></div></div>`;
+    }).join("") : `<p class="small muted">Aucune commande pour le moment.</p>`);
+    $("trkAdmin").querySelectorAll(".trk-admin-row").forEach(row => {
+      const id = row.dataset.oid, q = k => row.querySelector(`[data-k="${k}"]`);
+      q("save").addEventListener("click", async () => {
+        const body = {status: q("status").value, tracking: q("tracking").value.trim()}; if (q("amount") && q("amount").value) body.amount = +q("amount").value;
+        q("msg").textContent = "…";
+        try { const r = await fetch("/api/commande?id=" + id, {method:"PATCH", headers:{"Content-Type":"application/json", "x-admin-key": adminKey}, body: JSON.stringify(body)}); if (!r.ok) throw 0; q("msg").textContent = "Enregistré ✓"; }
+        catch(e){ q("msg").textContent = "Échec : réessayez"; }
+      });
+      q("del").addEventListener("click", async () => {
+        if (q("del").dataset.confirm !== "1"){ q("del").dataset.confirm = "1"; q("del").textContent = "Confirmer"; return; }
+        try { const r = await fetch("/api/commande?id=" + id, {method:"DELETE", headers:{"x-admin-key": adminKey}}); if (!r.ok) throw 0; row.remove(); } catch(e){ q("msg").textContent = "Échec : réessayez"; }
+      });
+    });
+  } catch(e){ $("trkAdmin").innerHTML = `<div class="status err">Impossible de charger les commandes : reconnectez-vous.</div>`; }
+}
+$("trkOwnerOpen").addEventListener("click", () => { $("trkOwnerForm").hidden = false; $("trkOwnerPw").focus(); });
+$("trkOwnerForm").addEventListener("submit", async e => {
+  e.preventDefault(); const key = $("trkOwnerPw").value.trim(); if (!key) return;
+  $("trkOwnerMsg").textContent = "Vérification…";
+  try { const r = await fetch("/api/avis?admin=1", {headers:{"x-admin-key": key}}); if (!r.ok) throw 0;
+    adminKey = key; try { localStorage.setItem("ht-admin", key); } catch(err){}
+    $("trkOwnerPw").value = ""; $("trkOwnerMsg").textContent = ""; showOwner(); renderReviews(); loadAdminOrders();
+  } catch(err){ $("trkOwnerMsg").textContent = "Mot de passe incorrect."; }
+});
 async function loadLiveReviews(){
   try {
     const r = await fetch("/api/avis", {cache:"no-store"});
@@ -1405,6 +1520,9 @@ async function loadLiveReviews(){
     $("myReviewWa").hidden = true; $("myReviewPost").hidden = false;
     $("myNote").textContent = "Votre avis est publié tout de suite sur le site.";
     $("ownerBox").hidden = false; showOwner();
+    $("suivi").hidden = false; loadAdminOrders();
+    const qid = new URLSearchParams(location.search).get("commande");
+    if (qid){ $("trkId").value = qid; lookupOrder(qid); route("suivi"); }
     renderReviews();
   } catch(e){}
 }
@@ -1419,10 +1537,10 @@ $("ownerForm").addEventListener("submit", async e => {
     const r = await fetch("/api/avis?admin=1", {headers:{"x-admin-key": key}});
     if (!r.ok) throw 0;
     adminKey = key; try { localStorage.setItem("ht-admin", key); } catch(e){}
-    $("ownerPw").value = ""; $("ownerMsg").textContent = ""; showOwner(); renderReviews();
+    $("ownerPw").value = ""; $("ownerMsg").textContent = ""; showOwner(); renderReviews(); loadAdminOrders();
   } catch(e){ $("ownerMsg").textContent = "Mot de passe incorrect."; }
 });
-$("ownerOut").addEventListener("click", () => { adminKey = ""; try { localStorage.removeItem("ht-admin"); } catch(e){} showOwner(); renderReviews(); });
+$("ownerOut").addEventListener("click", () => { adminKey = ""; try { localStorage.removeItem("ht-admin"); } catch(e){} showOwner(); renderReviews(); loadAdminOrders(); });
 $("myReviewPost").addEventListener("click", async () => {
   const name = $("myName").value.trim(), text = $("myText").value.trim();
   const st = m => $("myStatus").innerHTML = m ? `<div class="status ${m[1]}">${esc(m[0])}</div>` : "";
@@ -1784,6 +1902,7 @@ function priceFor(grams, hours, mat){
   return Math.ceil(brut/CONFIG.arrondi - 1e-9) * CONFIG.arrondi;
 }
 function calc(){
+  state.total = null;
   const c = colorOf(state.color), mat = MATERIALS[c.mat];
   const qty = Math.max(1, Math.round(parseFloat($("qty").value)) || 1);
   const ship = SHIP.find(s => s.id === state.ship), s = state.scale/100;
@@ -1836,6 +1955,7 @@ function calc(){
   const piece = priceFor(grams, hours, mat);
   const kg = (grams*qty + CONFIG.emballageG)/1000, port = ship.price(kg), total = piece*qty + perso.fee + port;
   const fits = fitsAt(m.dims, s);
+  state.total = fits ? total : null;
   $("dimsOut").textContent = `${fmtCm(dims[0])} × ${fmtCm(dims[1])} × ${fmtCm(dims[2])} cm`;
   $("rMsg").innerHTML = (fits ? "" : `<div class="status err">Trop grand à ${state.scale} % : maximum 21 × 21 × 20 cm. Réduisez la taille ou cliquez sur « Ajuster à la taille maximale ».</div>`) + stockMsg;
   $("rLines").innerHTML = `
