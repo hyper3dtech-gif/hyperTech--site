@@ -542,6 +542,10 @@ button,input,select,textarea{font-family:inherit}
 .cart .btn.ghost{color:var(--hero-ink);border-color:#3a434f;padding:4px 10px;font-size:.78rem}
 #addMore{color:var(--hero-ink);border:2px dashed var(--glow)!important;background:transparent}
 .trk-files{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.legal{display:grid;grid-template-columns:1fr 1.6fr;gap:16px;align-items:start}
+@media (max-width:820px){.legal{grid-template-columns:1fr}}
+.legal p{font-size:.94rem;line-height:1.6}
+footer .foot-bottom a{color:var(--hero-muted);text-decoration:underline}
 a{color:var(--accent)}
 </style>
 
@@ -942,6 +946,32 @@ a{color:var(--accent)}
 </section>
 
 
+<section id="mentions" data-page>
+  <div class="wrap">
+    <div class="head">
+      <span class="eyebrow">Informations légales</span>
+      <h2>Mentions légales et protection des données</h2>
+    </div>
+    <div class="legal">
+      <div class="panel">
+        <h3>Mentions légales</h3>
+        <p><b>Hyper Tech</b> · impression 3D à la demande</p>
+        <p>Responsable : Adian Sehovic<br>Gerbeweg 15a<br>3280 Murten<br>Suisse</p>
+        <p>E-mail : <a href="mailto:hyper3dtech@gmail.com">hyper3dtech@gmail.com</a><br>Téléphone : <a href="tel:+41796150203">+41 79 615 02 03</a></p>
+        <p class="small muted">Hébergement du site : Netlify, Inc., San Francisco, États-Unis.</p>
+      </div>
+      <div class="panel">
+        <h3>Protection des données</h3>
+        <p><b>Données reçues.</b> Quand vous commandez : nom, e-mail, téléphone, adresse de livraison, remarque et fichiers 3D. Quand vous laissez un avis : prénom, note et texte, publiés sur le site.</p>
+        <p><b>Utilisation.</b> Uniquement pour traiter votre commande : vous répondre, préparer l'impression, vous envoyer le colis et le suivi. Vos données ne sont ni vendues ni utilisées pour de la publicité.</p>
+        <p><b>Prestataires.</b> Le site et vos commandes sont hébergés par Netlify (États-Unis). Les e-mails passent par Gmail (Google). Votre nom et votre adresse sont transmis à La Poste pour l'envoi. Le paiement se fait par TWINT.</p>
+        <p><b>Sur votre appareil.</b> Le site garde votre code de commande dans votre navigateur, pour vous afficher le suivi. Aucun cookie publicitaire ni outil de suivi des visites n'est utilisé.</p>
+        <p><b>Durée.</b> Vos données sont gardées le temps nécessaire à la commande et à ses suites (garantie, comptabilité).</p>
+        <p><b>Vos droits.</b> Vous pouvez demander à voir, corriger ou supprimer vos données, ou retirer votre avis, en écrivant à <a href="mailto:hyper3dtech@gmail.com">hyper3dtech@gmail.com</a>.</p>
+      </div>
+    </div>
+  </div>
+</section>
 </main>
 
 <footer><div class="wrap">
@@ -951,7 +981,7 @@ a{color:var(--accent)}
     <div><h4>Infos</h4><a href="#coloris">Coloris</a><a href="#livraison">Livraison et paiement</a><a href="#avis">Avis et questions</a><a href="#suivi">Suivre ma commande</a></div>
     <div><h4>Contact</h4><a id="footWa" href="#" target="_blank" rel="noopener">WhatsApp</a><a href="#questions">Écrivez-moi</a><a class="foot-contact" href="tel:+41796150203">+41 79 615 02 03</a><a class="foot-contact" href="mailto:hyper3dtech@gmail.com">hyper3dtech@gmail.com</a></div>
   </div>
-  <div class="foot-bottom"><span>© <span id="yr"></span> Hyper Tech · Impression 3D en Suisse</span><span>PLA &amp; PETG · Max 21 × 21 × 20 cm · Envoi La Poste</span></div>
+  <div class="foot-bottom"><span>© <span id="yr"></span> Hyper Tech · Impression 3D en Suisse · <a href="#mentions">Mentions légales et protection des données</a></span><span>PLA &amp; PETG · Max 21 × 21 × 20 cm · Envoi La Poste</span></div>
 </div></footer>
 <dialog class="order-dlg" id="orderDlg" aria-labelledby="odTitle">
   <form class="panel" id="orderForm" novalidate>
