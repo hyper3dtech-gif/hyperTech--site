@@ -550,6 +550,8 @@ footer .foot-bottom a{color:var(--hero-muted);text-decoration:underline}
 .wait.warn{background:#3a2f10;color:#ffd166}
 .wait.late{background:#3b1414;color:#ff8a8a}
 .wait.done{background:#12301f;color:#7be0a5}
+.od-via{display:grid;gap:8px;border:2px solid var(--glow);border-radius:12px;padding:12px;background:rgba(90,209,240,.14);font-size:.92rem}
+.od-via b{color:var(--glow)}
 a{color:var(--accent)}
 </style>
 
@@ -1005,10 +1007,17 @@ a{color:var(--accent)}
       <div class="field"><label for="odNote">Remarque (facultatif)</label><input id="odNote" maxlength="300"></div>
     </div>
     <input id="odBot" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px">
+    <div class="field"><span class="legend">Comment voulez-vous m'envoyer votre commande ? <span class="req">*</span></span>
+      <div class="seg" id="odVia">
+        <label><input type="radio" name="odvia" value="wa" checked> WhatsApp</label>
+        <label><input type="radio" name="odvia" value="mail"> E-mail</label>
+      </div>
+      <span class="help" id="odViaHelp">WhatsApp s'ouvre avec votre commande déjà écrite : il vous suffit d'appuyer sur Envoyer.</span></div>
     <div id="odStatus"></div>
-    <button class="btn" type="submit" id="odSend">Envoyer ma demande</button>
+    <button class="btn" type="submit" id="odSend">Envoyer ma demande par WhatsApp</button>
     <p class="small muted" id="odReq"><span class="req">*</span> obligatoire</p>
     <div class="od-next" id="odNext" hidden>
+      <div class="od-via" id="odViaBox"></div>
       <div id="odNextBody"></div>
       <div class="od-num">Votre code de commande : <b id="odNum"></b> <button class="btn ghost sm" type="button" data-copy-el="odNum">Copier</button></div>
       <div class="od-where"><b>Suivi de votre commande :</b> à tout moment, allez dans <b>Livraison</b>, tout en bas, à « Suivre ma commande », et entrez ce code. Notez-le ou faites une capture d'écran.</div>
@@ -1157,18 +1166,25 @@ $("odQuit").addEventListener("click", odShut);
 $("odDone").addEventListener("click", odShut);
 $("odResume").addEventListener("click", () => { const d = $("orderDlg"); $("odLeave").hidden = true; if (d.showModal) d.showModal(); else d.setAttribute("open", ""); });
 window.addEventListener("beforeunload", e => { if (LIVE && !odSent && !$("odPending").hidden){ e.preventDefault(); e.returnValue = ""; } });
+document.querySelectorAll('input[name="odvia"]').forEach(r => r.addEventListener("change", () => {
+  const wa = document.querySelector('input[name="odvia"]:checked').value === "wa";
+  $("odSend").textContent = wa ? "Envoyer ma demande par WhatsApp" : "Envoyer ma demande par e-mail";
+  $("odViaHelp").textContent = wa ? "WhatsApp s'ouvre avec votre commande déjà écrite : il vous suffit d'appuyer sur Envoyer." : "Votre application e-mail s'ouvre avec votre commande déjà écrite : il vous suffit d'appuyer sur Envoyer.";
+}));
 $("orderForm").addEventListener("submit", async e => {
   e.preventDefault();
+  const via = (document.querySelector('input[name="odvia"]:checked') || {}).value || "wa";
   const st = (m, k) => $("odStatus").innerHTML = m ? `<div class="status ${k}">${esc(m)}</div>` : "";
   const name = $("odName").value.trim(), mail = $("odMail").value.trim(), addr = $("odAddr").value.trim();
   if (!name || !addr) return st("Indiquez votre nom et votre adresse de livraison.", "err");
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) return st("Vérifiez votre adresse e-mail.", "err");
   if ($("odTel").value.replace(/\D/g, "").length < 9) return st("Indiquez votre numéro de téléphone.", "err");
   $("odSend").disabled = true;
+  const waWin = via === "wa" ? window.open("about:blank", "_blank") : null;
   const links = [];
   for (let i = 0; i < odFiles.length; i++){
     st(odFiles.length > 1 ? `Envoi du fichier 3D ${i+1} sur ${odFiles.length}…` : "Envoi du fichier 3D…", "ok");
-    try { stlUp = null; links.push(await uploadSTL(odFiles[i])); } catch(err){ $("odSend").disabled = false; return st("Le fichier n'a pas pu être envoyé : réessayez dans un instant.", "err"); }
+    try { stlUp = null; links.push(await uploadSTL(odFiles[i])); } catch(err){ if (waWin) waWin.close(); $("odSend").disabled = false; return st("Le fichier n'a pas pu être envoyé : réessayez dans un instant.", "err"); }
   }
   const link = links[0] || "";
   st("Envoi de la demande…", "ok");
@@ -1180,11 +1196,19 @@ $("orderForm").addEventListener("submit", async e => {
   try {
     const r = await fetch("/", {method:"POST", headers:{"Content-Type":"application/x-www-form-urlencoded"},
       body: new URLSearchParams({"form-name":"commande", "bot-field": $("odBot").value, numero: oid, nom: name, email: mail, telephone: $("odTel").value.trim(), adresse: addr, remarque: $("odNote").value.trim(), commande, fichier: link}).toString()}).catch(() => ({ok:false}));
-    if (!r.ok && !saved) throw 0;
+    // Message complet pour la propriétaire, ouvert dans WhatsApp ou dans l'e-mail du client
+    const tel = $("odTel").value.trim(), note = $("odNote").value.trim();
+    const full = `${commande}\n\nNom : ${name}\nE-mail : ${mail}\nTéléphone : ${tel}\nAdresse de livraison : ${addr}${note ? "\nRemarque : " + note : ""}`;
+    const href = via === "wa" ? waLink(full) : `mailto:${CONFIG.contact}?subject=${encodeURIComponent("Commande " + oid + " · " + name)}&body=${encodeURIComponent(full)}`;
+    if (waWin && !waWin.closed) waWin.location.href = href;
+    else if (via === "mail"){ const a = document.createElement("a"); a.href = href; document.body.appendChild(a); a.click(); a.remove(); }
     st("", "");
     odSent = true; $("odSend").hidden = true; $("odAlert").hidden = true; $("odReq").hidden = true; $("odLeave").hidden = true;
     $("odStep2").className = "done"; $("odStep3").className = "cur";
     $("odNum").textContent = oid; $("odTrack").href = "?commande=" + oid + "#suivi";
+    $("odViaBox").innerHTML = `<span><b>Important :</b> ${via === "wa" ? "WhatsApp" : "votre application e-mail"} s'est ouvert avec votre commande. <b>Appuyez sur Envoyer</b> pour me l'envoyer.</span>
+      <a class="btn" href="${esc(href)}" ${via === "wa" ? 'target="_blank" rel="noopener"' : ""}>${via === "wa" ? "Rien ne s'est ouvert ? Ouvrir WhatsApp" : "Rien ne s'est ouvert ? Ouvrir mon e-mail"}</a>
+      <span class="small muted">Votre commande est aussi enregistrée sur le site.</span>`;
     const tl = trackLink(oid);
     $("odMailed").textContent = mailed ? `, et je vous ai envoyé un e-mail de confirmation à ${mail} (pensez à regarder dans vos spams)` : "";
     $("odCopyLink").onclick = () => { try { navigator.clipboard.writeText(tl); $("odCopyLink").textContent = "Lien copié"; } catch(err){} };
@@ -1197,7 +1221,7 @@ $("orderForm").addEventListener("submit", async e => {
            <div class="row"><span>Message à indiquer : ${oid}</span><button class="btn sm" type="button" data-copy="${oid}">Copier</button></div></div>
          <ol><li>Dès que je reçois votre paiement, je lance l'impression.</li><li>Je vous envoie votre pièce par La Poste, avec un numéro de suivi.</li><li>Vous suivez chaque étape avec votre numéro de commande.</li></ol>
          <p class="small">Si votre modèle pose un problème d'impression, je vous contacte par e-mail avant de l'imprimer.</p>`
-      : `<b>Votre demande est envoyée. Ne payez pas encore.</b>
+      : `<b>Ne payez pas encore.</b>
          <ol><li>Je vérifie votre demande et vous envoie le prix exact <b>par e-mail, en 24 heures maximum</b>.</li><li>Vous payez ensuite par TWINT, selon mon e-mail.</li><li>J'imprime votre pièce et je vous l'envoie par La Poste, avec un numéro de suivi.</li></ol>`;
     $("odNext").hidden = false; $("odNext").scrollIntoView({block:"nearest"}); $("odPending").hidden = true;
     if (odOpts.cart){ cart = []; resetCalc(); updCart(); }
