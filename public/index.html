@@ -546,6 +546,10 @@ button,input,select,textarea{font-family:inherit}
 @media (max-width:820px){.legal{grid-template-columns:1fr}}
 .legal p{font-size:.94rem;line-height:1.6}
 footer .foot-bottom a{color:var(--hero-muted);text-decoration:underline}
+.wait{display:inline-block;font-size:.8rem;font-weight:800;padding:3px 10px;border-radius:99px;background:rgba(90,209,240,.16);color:var(--glow);margin-bottom:6px}
+.wait.warn{background:#3a2f10;color:#ffd166}
+.wait.late{background:#3b1414;color:#ff8a8a}
+.wait.done{background:#12301f;color:#7be0a5}
 a{color:var(--accent)}
 </style>
 
@@ -1577,6 +1581,13 @@ async function mineBanner(){
 }
 const STEP_LABEL = {recue:"Demande reçue", devis:"Prix confirmé par e-mail", payee:"Paiement reçu", impression:"En cours d'impression", imprimee:"Imprimée et contrôlée", envoyee:"Envoyée par La Poste"};
 const stepsFor = o => o.quote ? ["recue","devis","payee","impression","imprimee","envoyee"] : ["recue","payee","impression","imprimee","envoyee"];
+const fmtDur = ms => { const h = Math.floor(ms/36e5), d = Math.floor(h/24); return d ? `${d} j${h%24 ? " " + (h%24) + " h" : ""}` : h ? `${h} h` : `${Math.max(1, Math.round(ms/6e4))} min`; };
+function waitBadge(o){
+  const sent = o.steps.find(x => x.s === "envoyee");
+  if (sent) return `<span class="wait done">✓ envoyée en ${fmtDur(new Date(sent.at) - new Date(o.created))}</span>`;
+  const ms = Date.now() - new Date(o.created), d = ms / 864e5;
+  return `<span class="wait ${d >= 5 ? "late" : d >= 3 ? "warn" : ""}">⏱ Le client attend depuis ${fmtDur(ms)}</span>`;
+}
 const fmtDT = iso => new Date(iso).toLocaleString("fr-CH", {day:"numeric", month:"long", hour:"2-digit", minute:"2-digit"});
 function trackHtml(o){
   const done = Object.fromEntries(o.steps.map(x => [x.s, x.at])), list = stepsFor(o), last = o.steps[o.steps.length-1].s;
@@ -1605,7 +1616,7 @@ async function loadAdminOrders(){
     const list = await r.json();
     $("trkAdmin").innerHTML = `<h3 style="margin-top:18px">Mes commandes <span class="tag solid">visible par vous seule</span></h3>` + (list.length ? list.map(o => {
       const last = o.steps[o.steps.length-1].s;
-      return `<div class="trk-admin-row" data-oid="${esc(o.id)}"><div><b>${esc(o.id)}</b> · ${esc(o.name || "")} · ${esc(o.summary || "")}${o.amount ? " · " + chf(o.amount) : " · sur devis"}<br><small class="muted">Reçue le ${fmtDT(o.created)} · étape actuelle : ${STEP_LABEL[last]}</small>
+      return `<div class="trk-admin-row" data-oid="${esc(o.id)}"><div>${waitBadge(o)}<br><b>${esc(o.id)}</b> · ${esc(o.name || "")} · ${esc(o.summary || "")}${o.amount ? " · " + chf(o.amount) : " · sur devis"}<br><small class="muted">Reçue le ${fmtDT(o.created)} · étape actuelle : ${STEP_LABEL[last]}</small>
         ${(() => { const fl = (o.files && o.files.length) ? o.files : o.file ? [o.file] : []; return fl.length ? `<div class="trk-files">${fl.map((f, i) => `<a class="btn sm" href="${esc(f)}">⬇ Télécharger le fichier 3D${fl.length > 1 ? " " + (i+1) : ""}</a>`).join("")}</div>` : ""; })()}
         ${o.contact ? `<details style="margin-top:6px"><summary class="small" style="color:var(--glow);cursor:pointer">Voir le détail du client et de la commande</summary><div class="small" style="margin-top:6px;line-height:1.6">E-mail : <a href="mailto:${esc(o.contact.email)}">${esc(o.contact.email)}</a><br>Téléphone : <a href="tel:${esc(o.contact.phone)}">${esc(o.contact.phone)}</a><br>Adresse : ${esc(o.contact.address)}${o.contact.note ? "<br>Remarque : " + esc(o.contact.note) : ""}</div><pre style="white-space:pre-wrap;font:500 .8rem/1.5 var(--f-body);color:var(--hero-muted);background:#151a21;border-radius:10px;padding:10px;margin-top:8px">${esc(o.details || "")}</pre></details>` : ""}</div>
         <div class="ctl"><select data-k="status">${stepsFor(o).map(k => `<option value="${k}" ${k === last ? "selected" : ""}>${STEP_LABEL[k]}</option>`).join("")}</select>

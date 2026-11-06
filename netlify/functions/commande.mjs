@@ -42,6 +42,17 @@ async function sendConfirmation(o, to, details, origin) {
   return true;
 }
 
+// Notification sur le téléphone de la propriétaire (application gratuite ntfy, abonnement au sujet ci-dessous)
+const NTFY_TOPIC = process.env.NTFY_TOPIC || "hypertech-i25s9hj8pplgxx";
+async function pushPhone(o, origin) {
+  const n = (o.files && o.files.length) || (o.file ? 1 : 0);
+  const r = await fetch("https://ntfy.sh/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
+    topic: NTFY_TOPIC, title: `Nouvelle commande ${o.id}`, tags: ["package"], priority: 4, click: `${origin}/#suivi`,
+    message: `${o.summary || "Commande"} · ${o.quote ? "prix à confirmer" : chf(o.amount) + " à recevoir par TWINT"}${n ? ` · ${n} fichier${n > 1 ? "s" : ""} 3D` : ""}. Ouvrez Mes commandes pour la traiter.`
+  }) });
+  return r.ok;
+}
+
 // Copie de chaque commande dans la boîte de la boutique
 async function notifyOwner(o, origin) {
   const user = process.env.GMAIL_USER, pass = (process.env.GMAIL_APP_PASSWORD || "").replace(/\s/g, "");
@@ -88,6 +99,7 @@ export default async (req, context) => {
     await store.setJSON("c/" + oid, o);
     const mailed = await sendConfirmation(o, String(d.email || "").trim(), clean(d.details, 3000), url.origin).catch(() => false);
     await notifyOwner(o, url.origin).catch(() => false);
+    await pushPhone(o, url.origin).catch(() => false);
     return Response.json({ ...pub(o), mailed }, { status: 201 });
   }
 
