@@ -465,6 +465,19 @@ button,input,select,textarea{font-family:inherit}
 .offer,.card,.color,.gtab{transition:border-color .2s,box-shadow .25s,transform .15s}
 .offer:hover,.card:hover,.color:hover:not([disabled]),.gtab:hover,.gtab[aria-selected="true"]{border-color:var(--glow)!important;box-shadow:0 0 0 6px rgba(90,209,240,.22),0 14px 34px rgba(10,166,218,.32)}
 .foot-contact{display:block;padding-block:2px;color:var(--hero-ink)!important;font-weight:600;text-decoration:none}
+/* Atelier : pièces multiples */
+.parts{display:grid;gap:10px}
+.part{display:grid;grid-template-columns:1.6fr 1.1fr .7fr .9fr .6fr auto;gap:10px;align-items:end;background:var(--surface);border:2px solid var(--accent);border-radius:12px;padding:12px}
+@media (max-width:820px){.part{grid-template-columns:1fr 1fr}}
+.part .field label{font-size:.8rem}
+.part .pinfo{grid-column:1/-1;font-size:.82rem;color:var(--muted)}
+.part .pinfo.err{color:var(--ink);font-weight:700}
+.aprice{display:grid;gap:4px;background:var(--surface);border:1.5px solid var(--accent);border-radius:12px;padding:12px 14px;font-variant-numeric:tabular-nums}
+.aprice:empty{display:none}
+.aprice .line{display:flex;justify-content:space-between;gap:10px;font-size:.92rem}
+.aprice .line.tot{border-top:2px solid var(--ink);padding-top:6px;margin-top:4px;font-weight:800}
+.ctags{display:flex;gap:6px;flex-wrap:wrap}
+.ctags .sw{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:0;border:1px solid rgba(128,128,140,.5)}
 a{color:var(--accent)}
 </style>
 
@@ -721,14 +734,18 @@ a{color:var(--accent)}
     <form class="atelier" id="atelier" hidden novalidate>
       <h3>Mode atelier <span class="tag solid">visible par vous seule</span></h3>
       <div class="fgrid">
-        <div class="field"><label for="aName">Nom</label><input id="aName" placeholder="Support de téléphone" maxlength="60"></div>
-        <div class="field"><label for="aPrice">Prix (CHF, livraison comprise)</label><input id="aPrice" type="number" min="1" step="0.5" placeholder="19.00" inputmode="decimal"></div>
-        <div class="field full"><label for="aDesc">Description</label><textarea id="aDesc" maxlength="260" placeholder="Stable, pliable, imprimé en PETG solide."></textarea></div>
-        <div class="field"><label for="aColor">Coloris</label><select id="aColor"></select></div>
-        <div class="field"><label for="aDims">Dimensions</label><input id="aDims" placeholder="8 × 7 × 12 cm"></div>
-        <div class="field"><label for="aStl">Modèle 3D (.stl)</label><input id="aStl" type="file" accept=".stl"></div>
+        <div class="field"><label for="aName">Nom</label><input id="aName" placeholder="Fidget hexagonal" maxlength="60"></div>
         <div class="field"><label for="aPhoto">Photo (facultatif)</label><input id="aPhoto" type="file" accept="image/png,image/jpeg,image/webp"></div>
-        <div class="field full"><label for="aPay">Lien de paiement Stripe / TWINT (facultatif)</label><input id="aPay" type="url" placeholder="https://buy.stripe.com/…"></div>
+        <div class="field full"><label for="aDesc">Description</label><textarea id="aDesc" maxlength="260" placeholder="Deux pièces qui s'emboîtent, imprimées en PLA."></textarea></div>
+      </div>
+      <div class="field"><span class="legend">Pièces de l'objet</span><span class="help">Une ligne par pièce : son fichier .stl, sa couleur, sa taille et son remplissage. Le prix se calcule tout seul.</span></div>
+      <div class="parts" id="aParts"></div>
+      <button class="btn ghost sm" type="button" id="aAddPart" style="justify-self:start">+ Ajouter une pièce</button>
+      <div class="aprice" id="aCalc"></div>
+      <div class="fgrid">
+        <div class="field"><label for="aPrice">Prix affiché (CHF, livraison comprise)</label><span class="help">Rempli automatiquement avec le prix calculé. Vous pouvez le modifier.</span><input id="aPrice" type="number" min="1" step="0.5" placeholder="19.00" inputmode="decimal"></div>
+        <div class="field"><label for="aDims">Dimensions</label><span class="help">Remplies automatiquement avec la plus grande pièce.</span><input id="aDims" placeholder="8 × 7 × 12 cm"></div>
+        <div class="field full"><label for="aPay">Lien de paiement TWINT (facultatif)</label><input id="aPay" type="url" placeholder="https://…"></div>
       </div>
       <div id="aStatus"></div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
@@ -1077,7 +1094,8 @@ function vaseGeometry(){
   for (let i=0;i<seg;i++){ const a=P(0,i+1), b=P(0,i); out.push(0,0,0,...a,...b); }
   return new Float32Array(out);
 }
-function makeViewer(container, positions, color){
+function makeViewer(container, positions, color){ return makeViewerParts(container, [{positions, color, scale:1}]); }
+function makeViewerParts(container, parts){
   const canvas = document.createElement("canvas");
   canvas.setAttribute("aria-label", "Modèle 3D, glissez pour tourner");
   container.prepend(canvas);
@@ -1088,17 +1106,28 @@ function makeViewer(container, positions, color){
   scene.add(new THREE.HemisphereLight(0xffffff, 0x444466, 0.85));
   const key = new THREE.DirectionalLight(0xffffff, 0.8); key.position.set(3,5,4); scene.add(key);
   const rim = new THREE.DirectionalLight(0xffffff, 0.35); rim.position.set(-4,2,-3); scene.add(rim);
-  const g = new THREE.BufferGeometry();
-  g.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-  g.rotateX(-Math.PI/2);
-  g.computeBoundingBox();
-  const size = new THREE.Vector3(), ctr = new THREE.Vector3();
-  g.boundingBox.getSize(size); g.boundingBox.getCenter(ctr);
-  g.translate(-ctr.x, -ctr.y, -ctr.z);
-  const s = 2 / Math.max(size.x, size.y, size.z); g.scale(s, s, s);
-  g.computeVertexNormals();
-  const mat = new THREE.MeshStandardMaterial({color: new THREE.Color(color.hex), roughness: color.rough, metalness: 0.05, side: THREE.DoubleSide});
-  const pivot = new THREE.Group(); pivot.add(new THREE.Mesh(g, mat)); pivot.rotation.x = 0.35; scene.add(pivot);
+  const inner = new THREE.Group(), mats = [];
+  let x = 0;
+  parts.forEach(pt => {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.BufferAttribute(pt.positions, 3));
+    g.rotateX(-Math.PI/2);
+    if (pt.scale && pt.scale !== 1) g.scale(pt.scale, pt.scale, pt.scale);
+    g.computeBoundingBox();
+    const bb = g.boundingBox, w = bb.max.x - bb.min.x;
+    g.translate(x - bb.min.x, -bb.min.y, -(bb.min.z + bb.max.z)/2);
+    x += w + Math.max(4, w*0.15);
+    g.computeVertexNormals();
+    const mat = new THREE.MeshStandardMaterial({color: new THREE.Color(pt.color.hex), roughness: pt.color.rough, metalness: 0.05, side: THREE.DoubleSide});
+    mats.push(mat); inner.add(new THREE.Mesh(g, mat));
+  });
+  const box = new THREE.Box3().setFromObject(inner), size = new THREE.Vector3(), ctr = new THREE.Vector3();
+  box.getSize(size); box.getCenter(ctr);
+  inner.position.set(-ctr.x, -ctr.y, -ctr.z);
+  const holder = new THREE.Group(); holder.add(inner);
+  const s = 2 / Math.max(size.x, size.y, size.z); holder.scale.set(s, s, s);
+  const mat = mats[0];
+  const pivot = new THREE.Group(); pivot.add(holder); pivot.rotation.x = 0.35; scene.add(pivot);
   camera.position.set(0, 0, 4.3);
   let drag = null, auto = true, running = false, raf = 0;
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -1117,19 +1146,27 @@ function makeViewer(container, positions, color){
 
 /* ===== Boutique ===== */
 const blobUrl = id => "/_blob/" + id;
+const partsOf = it => Array.isArray(it.parts) && it.parts.length ? it.parts : [{color: it.color, model: it.model, qty: 1}];
 async function mountModel(item, view){
   if (!view) return;
   if (!HAS3D) return fallbackImg(item, view);
   try {
-    let pos;
-    if (item.model && item.model.builtin === "vase") pos = vaseGeometry();
-    else if (item.model && item.model.asset) { const r = await fetch(blobUrl(item.model.asset)); if (!r.ok) throw 0; pos = decodeModel(await r.json()); }
-    else return fallbackImg(item, view);
-    makeViewer(view, pos, colorOf(item.color));
+    const ps = partsOf(item).filter(pt => pt.model), list = [];
+    if (!ps.length) return fallbackImg(item, view);
+    for (const pt of ps){
+      let pos;
+      if (pt.model.builtin === "vase") pos = vaseGeometry();
+      else { const r = await fetch(blobUrl(pt.model.asset)); if (!r.ok) throw 0; pos = decodeModel(await r.json()); }
+      for (let k = 0; k < Math.min(pt.qty || 1, 4); k++) list.push({positions: pos, color: colorOf(pt.color), scale: (pt.scale || 100)/100});
+    }
+    makeViewerParts(view, list);
   } catch(e) { fallbackImg(item, view); }
 }
+function partsLabel(it){
+  return partsOf(it).map(pt => { const c = colorOf(pt.color); return `${(pt.qty||1) > 1 ? pt.qty + " × " : ""}${pt.name ? pt.name + " " : ""}${c.mat} ${c.name}`; }).join(" + ");
+}
 function fallbackImg(item, view){
-  const c = colorOf(item.color);
+  const c = colorOf(partsOf(item)[0].color);
   view.insertAdjacentHTML("afterbegin", item.photo
     ? `<img src="${blobUrl(esc(item.photo))}" alt="${esc(item.name)}">`
     : `<div style="height:100%;display:grid;place-items:center;padding:12%"><svg class="benchy-ico ${c.mat==="PETG"?"petg":""}" viewBox="0 0 400 280" style="width:100%;color:${c.hex}" aria-hidden="true"><use href="#benchy"></use></svg></div>`);
@@ -1144,8 +1181,8 @@ function renderShop(){
     return;
   }
   $("shop").innerHTML = items.map(it => {
-    const c = colorOf(it.color);
-    const msg = `Bonjour, je souhaite commander « ${it.name} » (${c.mat} ${c.name}) à ${chf(+it.price)}, livraison comprise.\n\nNom :\nAdresse :`;
+    const ps = partsOf(it);
+    const msg = `Bonjour, je souhaite commander « ${it.name} » (${partsLabel(it)}) à ${chf(+it.price)}, livraison comprise.\n\nNom :\nAdresse :`;
     return `<article class="card">
       <div class="view" data-id="${esc(it.id)}">
         <div class="badges">${it.example?'<span class="tag warn">Exemple</span>':""}${it.week===week?'<span class="tag solid">Nouveau</span>':""}</div>
@@ -1154,7 +1191,7 @@ function renderShop(){
       <div class="card-body">
         <div class="row"><h3>${esc(it.name)}</h3><span class="price">${chf(+it.price)}</span></div>
         <p class="small muted">${esc(it.desc)}</p>
-        <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="tag">${c.mat} · ${esc(c.name)}</span>${it.dims?`<span class="tag">${esc(it.dims)}</span>`:""}</div>
+        <div class="ctags">${[...new Map(ps.map(pt => [pt.color, colorOf(pt.color)])).values()].map(c => `<span class="tag"><span class="sw" style="background:${esc(c.hex)}"></span>${c.mat} · ${esc(c.name)}</span>`).join("")}${ps.length > 1 ? `<span class="tag">${ps.reduce((n,pt) => n + (pt.qty||1), 0)} pièces</span>` : ""}${it.dims?`<span class="tag">${esc(it.dims)}</span>`:""}</div>
         <div class="card-actions">
           ${it.pay ? `<a class="btn sm" href="${esc(it.pay)}" target="_blank" rel="noopener">Payer avec TWINT</a>` : ""}
           <a class="btn sm ${it.pay?"ghost":""}" href="${esc(waLink(msg))}" target="_blank" rel="noopener">${it.pay?"Une question":"Commander"}</a>
@@ -1168,7 +1205,6 @@ function renderShop(){
 
 /* ===== Atelier (propriétaire uniquement) ===== */
 let artifactApi = null, assetsApi = null;
-$("aColor").innerHTML = COLORS.map(c => `<option value="${c.id}">${c.name} (${c.mat})</option>`).join("");
 let statusEl = "aStatus";
 function status(msg, kind){ $(statusEl).innerHTML = msg ? `<div class="status ${kind}">${esc(msg)}</div>` : ""; }
 function renderAdminList(){
@@ -1361,24 +1397,94 @@ function encodeModel(p){
   for (let i=0;i<p.length;i++){ const a=i%3, r=(max[a]-min[a])||1; q[i] = Math.round((p[i]-min[a])/r*65535); }
   return JSON.stringify({v:1, min, max, q: bytesToB64(new Uint8Array(q.buffer))});
 }
+/* Pièces de l'objet : fichier, couleur, taille, remplissage, quantité */
+let aParts = [], aPriceTouched = false, aPid = 0;
+function estimatePart(an, scalePct, infill, mat){
+  const s = scalePct/100, V = an.V*s*s*s/1000, A = an.A*s*s/100;
+  const shell = Math.min(V, A*CONFIG.paroiCm);
+  const shellG = mat.densite*shell, infillG = mat.densite*infill/100*(V - shell);
+  const grams = shellG + infillG, hours = shellG/CONFIG.grammesParHeure + infillG/CONFIG.grammesParHeureRemplissage + 0.15;
+  return {grams, hours, price: priceFor(grams, hours, mat), dims: an.dims.map(d => d*s), fits: fitsAt(an.dims, s)};
+}
+function newPart(){ return {pid: ++aPid, name: "", color: (COLORS.find(c => c.stock !== "out") || COLORS[0]).id, scale: 100, infill: [10,15,25,50].includes(Math.round(CONFIG.remplissage*100)) ? Math.round(CONFIG.remplissage*100) : 15, qty: 1, file: null, p: null, an: null, err: ""}; }
+function renderParts(){
+  const colOpts = sel => COLORS.map(c => `<option value="${esc(c.id)}" ${c.id===sel?"selected":""}>${esc(c.name)} (${c.mat})</option>`).join("");
+  $("aParts").innerHTML = aParts.map((pt, i) => `<div class="part" data-pid="${pt.pid}">
+    <div class="field"><label>Pièce ${i+1}${pt.file ? " · " + esc(pt.file.name) : " · fichier .stl"}</label><input type="file" accept=".stl" data-k="file" ${pt.file ? `title="${esc(pt.file.name)}"` : ""}></div>
+    <div class="field"><label>Coloris</label><select data-k="color">${colOpts(pt.color)}</select></div>
+    <div class="field"><label>Taille</label><div class="unit"><input type="number" min="1" max="1000" step="5" value="${pt.scale}" data-k="scale" inputmode="numeric"><span>%</span></div></div>
+    <div class="field"><label>Remplissage</label><select data-k="infill">${[10,15,25,50].map(v => `<option value="${v}" ${v===pt.infill?"selected":""}>${v} %</option>`).join("")}</select></div>
+    <div class="field"><label>Nombre</label><input type="number" min="1" max="20" value="${pt.qty}" data-k="qty" inputmode="numeric"></div>
+    <button class="btn ghost sm" type="button" data-k="del" ${aParts.length < 2 ? "hidden" : ""}>Retirer</button>
+    <div class="pinfo" data-info></div>
+  </div>`).join("");
+  $("aParts").querySelectorAll(".part").forEach(row => {
+    const pt = aParts.find(x => x.pid === +row.dataset.pid);
+    row.querySelector('[data-k="file"]').addEventListener("change", async e => {
+      const f = e.target.files[0]; if (!f) return;
+      pt.file = f; pt.name = f.name.replace(/\.stl$/i, ""); pt.err = ""; pt.p = null; pt.an = null; row.querySelector("label").textContent = `Pièce ${aParts.indexOf(pt)+1} · ${f.name}`; aCalc();
+      try { pt.p = parseSTL(await f.arrayBuffer()); pt.an = analyse(pt.p); if (!fitsAt(pt.an.dims, pt.scale/100)) pt.scale = Math.min(100, maxScale(pt.an.dims)); row.querySelector('[data-k="scale"]').value = pt.scale; }
+      catch(err){ pt.err = (err && err.message) || "Fichier illisible."; }
+      aCalc();
+    });
+    row.querySelector('[data-k="color"]').addEventListener("change", e => { pt.color = e.target.value; aCalc(); });
+    row.querySelector('[data-k="scale"]').addEventListener("input", e => { const v = parseFloat(e.target.value); if (v > 0) { pt.scale = Math.min(1000, Math.round(v)); aCalc(); } });
+    row.querySelector('[data-k="infill"]').addEventListener("change", e => { pt.infill = +e.target.value; aCalc(); });
+    row.querySelector('[data-k="qty"]').addEventListener("input", e => { pt.qty = Math.max(1, Math.min(20, Math.round(+e.target.value) || 1)); aCalc(); });
+    row.querySelector('[data-k="del"]').addEventListener("click", () => { aParts = aParts.filter(x => x !== pt); renderParts(); });
+  });
+  aCalc();
+}
+function aCalc(){
+  let sum = 0, grams = 0, ok = 0, lines = "", big = null, bigV = 0;
+  aParts.forEach((pt, i) => {
+    const info = $("aParts").querySelector(`.part[data-pid="${pt.pid}"] [data-info]`);
+    const c = colorOf(pt.color), mat = MATERIALS[c.mat];
+    if (pt.err){ if (info){ info.textContent = pt.err; info.className = "pinfo err"; } return; }
+    if (!pt.an){ if (info){ info.textContent = "Ajoutez le fichier .stl de cette pièce."; info.className = "pinfo"; } return; }
+    const e = estimatePart(pt.an, pt.scale, pt.infill, mat);
+    if (info){
+      info.className = e.fits ? "pinfo" : "pinfo err";
+      info.textContent = `${e.dims.map(d => fmtCm(d)).join(" × ")} cm · ${Math.max(1, Math.round(e.grams))} g · ${fmtH(e.hours)} · ${chf(e.price)} la pièce` + (e.fits ? "" : " · trop grand : maximum 21 × 21 × 20 cm");
+    }
+    ok++; sum += e.price*pt.qty; grams += e.grams*pt.qty;
+    const vol = e.dims[0]*e.dims[1]*e.dims[2]; if (vol > bigV){ bigV = vol; big = e.dims; }
+    lines += `<div class="line"><span>${pt.qty > 1 ? pt.qty + " × " : ""}${esc(pt.name || "Pièce " + (i+1))} · ${c.mat} ${esc(c.name)} · ${pt.infill} %</span><span>${chf(e.price*pt.qty)}</span></div>`;
+  });
+  if (!ok){ $("aCalc").innerHTML = ""; return; }
+  const ship = SHIP.find(x => x.id === "economy"), port = ship.price((grams + CONFIG.emballageG)/1000), total = sum + port;
+  $("aCalc").innerHTML = lines + `<div class="line"><span>Livraison La Poste Economy</span><span>${chf(port)}</span></div><div class="line tot"><span>Prix calculé, livraison comprise</span><span>${chf(total)}</span></div>`;
+  if (!aPriceTouched) $("aPrice").value = total.toFixed(2);
+  if (big && !$("aDims").dataset.touched) $("aDims").value = big.map(d => fmtCm(d)).join(" × ") + " cm";
+}
+$("aAddPart").addEventListener("click", () => { aParts.push(newPart()); renderParts(); });
+$("aPrice").addEventListener("input", () => { aPriceTouched = true; });
+$("aDims").addEventListener("input", () => { $("aDims").dataset.touched = "1"; });
+aParts = [newPart()]; renderParts();
+
 $("atelier").addEventListener("submit", async e => {
   e.preventDefault();
-  const name = $("aName").value.trim(), price = parseFloat($("aPrice").value), stl = $("aStl").files[0], photo = $("aPhoto").files[0];
-  const pay = $("aPay").value.trim();
+  const name = $("aName").value.trim(), price = parseFloat($("aPrice").value), photo = $("aPhoto").files[0];
+  const pay = $("aPay").value.trim(), ready = aParts.filter(pt => pt.p);
   if (!name || !(price > 0)) return status("Indiquez au moins un nom et un prix.", "err");
-  if (!stl && !photo) return status("Ajoutez un fichier .stl ou une photo.", "err");
+  if (aParts.some(pt => pt.err)) return status("Une pièce a un fichier illisible : remplacez-le ou retirez la pièce.", "err");
+  if (!ready.length && !photo) return status("Ajoutez au moins un fichier .stl ou une photo.", "err");
+  if (ready.some(pt => !fitsAt(pt.an.dims, pt.scale/100))) return status("Une pièce est trop grande : réduisez sa taille.", "err");
   if (pay && !/^https:\/\//.test(pay)) return status("Le lien de paiement doit commencer par https://", "err");
   if (!assetsApi) return status("L'envoi de fichiers n'est pas disponible dans cette vue.", "err");
   $("aSave").disabled = true;
   try {
-    const item = {id: "c" + Date.now().toString(36), name, desc: $("aDesc").value.trim(), price: Math.round(price*100)/100, color: $("aColor").value, dims: $("aDims").value.trim(), week: isoWeek()};
+    const item = {id: "c" + Date.now().toString(36), name, desc: $("aDesc").value.trim(), price: Math.round(price*100)/100, dims: $("aDims").value.trim(), week: isoWeek(), parts: []};
     if (pay) item.pay = pay;
-    if (stl){
-      status("Préparation du modèle 3D…", "ok");
-      const p = simplify(parseSTL(await stl.arrayBuffer()), 150000);
-      const up = await assetsApi.upload(new Blob([encodeModel(p)], {type:"application/json"}), {type:"application/json"});
-      item.model = {asset: up.id};
+    for (let i = 0; i < ready.length; i++){
+      const pt = ready[i];
+      status(`Préparation de la pièce ${i+1} sur ${ready.length}…`, "ok");
+      const up = await assetsApi.upload(new Blob([encodeModel(simplify(pt.p, ready.length > 1 ? 90000 : 150000))], {type:"application/json"}), {type:"application/json"});
+      const est = estimatePart(pt.an, pt.scale, pt.infill, MATERIALS[colorOf(pt.color).mat]);
+      item.parts.push({name: pt.name, color: pt.color, scale: pt.scale, infill: pt.infill, qty: pt.qty, grams: Math.round(est.grams), model: {asset: up.id}});
     }
+    if (!item.parts.length) item.parts.push({color: (COLORS[0]||{}).id, qty: 1});
+    item.color = item.parts[0].color;
     if (photo){
       status("Envoi de la photo…", "ok");
       const up = await assetsApi.upload(photo, {type: photo.type});
