@@ -850,14 +850,6 @@ a{color:var(--accent)}
       </form>
       <div id="trkOut"></div>
       <div id="trkMine"></div>
-      <details class="trk-find"><summary>Numéro perdu ? Retrouvez vos commandes avec votre e-mail et votre téléphone</summary>
-        <form id="findForm" novalidate style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-          <input id="findMail" type="email" placeholder="E-mail utilisé pour la commande" autocomplete="email" style="max-width:280px">
-          <input id="findTel" type="tel" placeholder="Téléphone" autocomplete="tel" style="max-width:200px">
-          <button class="btn sm" type="submit">Retrouver</button>
-        </form>
-        <div id="findOut"></div>
-      </details>
       <div class="owner-box">
         <button class="linkbtn small" type="button" id="trkOwnerOpen">Accès propriétaire</button>
         <form id="trkOwnerForm" hidden novalidate style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px">
@@ -975,7 +967,7 @@ a{color:var(--accent)}
     <div class="od-next" id="odNext" hidden>
       <div id="odNextBody"></div>
       <div class="od-num">Votre numéro de commande : <b id="odNum"></b> <button class="btn ghost sm" type="button" data-copy-el="odNum">Copier</button></div>
-      <div class="od-keep"><b>Gardez votre suivi :</b> ce numéro reste enregistré sur cet appareil, et vous pouvez retrouver vos commandes avec votre e-mail et votre téléphone.
+      <div class="od-keep"><b>Gardez votre suivi :</b> ce numéro reste enregistré sur cet appareil<span id="odMailed"></span>.
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><a class="btn sm" id="odTrack" href="#suivi">Suivre ma commande</a><button class="btn ghost sm" type="button" id="odCopyLink">Copier le lien de suivi</button><button class="btn ghost sm" type="button" id="odShare" hidden>M'envoyer le lien</button></div></div>
       <p class="small">Pas d'e-mail de ma part ? Regardez dans vos spams.</p>
       <button class="btn" type="button" id="odDone">J'ai compris</button>
@@ -1100,7 +1092,8 @@ $("orderForm").addEventListener("submit", async e => {
   st("Envoi de la demande…", "ok");
   const oid = newOrderId(), payNow = !!(odOpts.amount > 0 && !odOpts.quote);
   const commande = `Commande ${oid}\nPaiement : ${payNow ? "TWINT immédiat, " + chf(odOpts.amount) : "après confirmation du prix"}\n\n` + odText.replace(STL_TOKEN, link ? "Télécharger le fichier : " + link : "").replace(/\n{3,}/g, "\n\n");
-  try { await fetch("/api/commande", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({id: oid, amount: payNow ? odOpts.amount : null, quote: !payNow, summary: odOpts.summary || "", name, email: mail, phone: $("odTel").value})}); } catch(err){}
+  let mailed = false;
+  try { const rc = await fetch("/api/commande", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({id: oid, amount: payNow ? odOpts.amount : null, quote: !payNow, summary: odOpts.summary || "", name, email: mail, details: odText.replace("\n" + STL_TOKEN, "").replace(STL_TOKEN, "").replace(/^Bonjour[^\n]*\n+/, "").replace(/\n{3,}/g, "\n\n").trim() + `\n\nLivraison à : ${addr}\nTéléphone : ${$("odTel").value.trim()}`})}); if (rc.ok) mailed = !!(await rc.json()).mailed; } catch(err){}
   saveMine({id: oid, amount: payNow ? odOpts.amount : null, quote: !payNow, summary: odOpts.summary || "", at: new Date().toISOString()});
   try {
     const r = await fetch("/", {method:"POST", headers:{"Content-Type":"application/x-www-form-urlencoded"},
@@ -1111,6 +1104,7 @@ $("orderForm").addEventListener("submit", async e => {
     $("odStep2").className = "done"; $("odStep3").className = "cur";
     $("odNum").textContent = oid; $("odTrack").href = "?commande=" + oid + "#suivi";
     const tl = trackLink(oid);
+    $("odMailed").textContent = mailed ? `, et je vous ai envoyé un e-mail de confirmation à ${mail} (pensez à regarder dans vos spams)` : "";
     $("odCopyLink").onclick = () => { try { navigator.clipboard.writeText(tl); $("odCopyLink").textContent = "Lien copié"; } catch(err){} };
     $("odShare").hidden = !navigator.share;
     $("odShare").onclick = () => navigator.share({title: "Ma commande Hyper Tech " + oid, text: `Ma commande Hyper Tech ${oid}${payNow ? " · à payer par TWINT : " + chf(odOpts.amount) + " au " + TWINT_NUM : ""}`, url: tl}).catch(() => {});
@@ -1495,17 +1489,6 @@ async function mineBanner(){
     $("mineX").onclick = () => { $("mineBar").hidden = true; try { localStorage.setItem("ht-orders-hidden", JSON.stringify(hidden.concat(d.id))); } catch(e){} };
   } catch(e){}
 }
-$("findForm").addEventListener("submit", async e => {
-  e.preventDefault();
-  $("findOut").innerHTML = `<p class="small muted">Recherche…</p>`;
-  try {
-    const r = await fetch("/api/commande?find=1", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({email: $("findMail").value, phone: $("findTel").value})});
-    if (!r.ok) throw new Error(r.status === 400 || r.status === 429 ? await r.text() : "Recherche indisponible : réessayez.");
-    const list = await r.json();
-    $("findOut").innerHTML = list.length ? list.map(trackHtml).join("") : `<div class="status err" style="margin-top:10px">Aucune commande trouvée avec cet e-mail et ce téléphone. Vérifiez qu'ils sont identiques à ceux de votre commande.</div>`;
-    list.forEach(o => saveMine({id: o.id, amount: o.amount, quote: o.quote, summary: o.summary, at: o.created}));
-  } catch(err){ $("findOut").innerHTML = `<div class="status err" style="margin-top:10px">${esc(err.message)}</div>`; }
-});
 const STEP_LABEL = {recue:"Demande reçue", devis:"Prix confirmé par e-mail", payee:"Paiement reçu", impression:"En cours d'impression", imprimee:"Imprimée et contrôlée", envoyee:"Envoyée par La Poste"};
 const stepsFor = o => o.quote ? ["recue","devis","payee","impression","imprimee","envoyee"] : ["recue","payee","impression","imprimee","envoyee"];
 const fmtDT = iso => new Date(iso).toLocaleString("fr-CH", {day:"numeric", month:"long", hour:"2-digit", minute:"2-digit"});

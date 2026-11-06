@@ -3,6 +3,7 @@
 // GET /api/commande?all=1 et PATCH /api/commande?id=… : propriétaire (clé)
 import { getStore } from "@netlify/blobs";
 import { createHash } from "node:crypto";
+import nodemailer from "nodemailer";
 
 const ADMIN_HASH = "249446e8fe1724ac963d3352be1d4e1bcd5a535163b3ae7061614e93946269cb";
 const sha = s => createHash("sha256").update(String(s)).digest("hex");
@@ -10,8 +11,35 @@ const isAdmin = req => sha(req.headers.get("x-admin-key") || "") === ADMIN_HASH;
 const ID = /^HT-\d{4}-[A-Z0-9]{6}$/;
 const STATUSES = ["recue", "devis", "payee", "impression", "imprimee", "envoyee"];
 const clean = (s, n) => String(s || "").replace(/[\u0000-\u0009\u000b-\u001f\u007f]/g, " ").trim().slice(0, n);
-const contactKey = (mail, tel) => { const m = String(mail || "").trim().toLowerCase(), t = String(tel || "").replace(/\D/g, "").replace(/^(00)?41/, "0"); return m && t.length >= 9 ? sha(m + "|" + t + "|hypertech") : ""; };
 const pub = o => ({ id: o.id, created: o.created, quote: o.quote, amount: o.amount, summary: o.summary, steps: o.steps, tracking: o.tracking || "" });
+
+// E-mail de confirmation envoyé depuis la boîte Gmail de la boutique (variables GMAIL_USER et GMAIL_APP_PASSWORD dans Netlify)
+const escH = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const chf = n => "CHF " + Number(n).toFixed(2);
+async function sendConfirmation(o, to, details, origin) {
+  const user = process.env.GMAIL_USER, pass = (process.env.GMAIL_APP_PASSWORD || "").replace(/\s/g, "");
+  if (!user || !pass || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) return false;
+  const twint = process.env.TWINT_NUMERO || "+41 79 615 02 03";
+  const link = `${origin}/?commande=${o.id}#suivi`;
+  const pay = o.quote
+    ? "Ne payez pas encore : je vérifie votre demande et je vous envoie le prix exact par e-mail en 24 heures maximum. Vous payerez ensuite par TWINT."
+    : `Montant à payer maintenant : ${chf(o.amount)}\nEnvoyez-le par TWINT au ${twint}, avec le message « ${o.id} ». Dès que je reçois votre paiement, je lance l'impression.`;
+  const text = `Bonjour ${o.name || ""},\n\nMerci pour votre commande ! Je l'ai bien reçue.\n\nNuméro de commande : ${o.id}\n\n${pay}\n\nSuivre votre commande : ${link}\n\nRécapitulatif :\n${details}\n\nÀ bientôt,\nHyper Tech · Impression 3D en Suisse`;
+  const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#0a0c10;max-width:560px">
+    <div style="background:#0a0c10;color:#fff;padding:16px 20px;border-radius:12px 12px 0 0;font-weight:bold;font-size:18px">Hyper Tech</div>
+    <div style="border:3px solid #0aa6da;border-top:0;border-radius:0 0 12px 12px;padding:20px">
+      <p>Bonjour ${escH(o.name || "")},</p><p>Merci pour votre commande ! Je l'ai bien reçue.</p>
+      <p>Numéro de commande : <b>${o.id}</b></p>
+      ${o.quote
+        ? `<p style="background:#e3f6fc;border-radius:10px;padding:12px"><b>Ne payez pas encore.</b> Je vérifie votre demande et je vous envoie le prix exact par e-mail en 24 heures maximum. Vous payerez ensuite par TWINT.</p>`
+        : `<div style="background:#5ad1f0;border-radius:10px;padding:14px"><div>Montant à payer maintenant</div><div style="font-size:26px;font-weight:bold">${chf(o.amount)}</div><div>Par TWINT au <b>${escH(twint)}</b>, avec le message « <b>${o.id}</b> ».</div></div><p>Dès que je reçois votre paiement, je lance l'impression.</p>`}
+      <p><a href="${link}" style="display:inline-block;background:#0a0c10;color:#fff;text-decoration:none;padding:10px 18px;border-radius:99px;font-weight:bold">Suivre ma commande</a></p>
+      <p style="font-weight:bold;margin-bottom:4px">Récapitulatif</p><pre style="white-space:pre-wrap;font-family:Arial,sans-serif;font-size:13px;background:#f2f5f7;border-radius:10px;padding:12px;margin:0">${escH(details)}</pre>
+      <p>À bientôt,<br>Hyper Tech · Impression 3D en Suisse</p></div></div>`;
+  const tr = nodemailer.createTransport({ service: "gmail", auth: { user, pass } });
+  await tr.sendMail({ from: `"Hyper Tech" <${user}>`, to, replyTo: user, subject: `Votre commande Hyper Tech ${o.id}`, text, html });
+  return true;
+}
 
 export default async (req, context) => {
   const store = getStore("commandes");
@@ -32,20 +60,6 @@ export default async (req, context) => {
     return Response.json(pub(o), { headers: { "Cache-Control": "no-store" } });
   }
 
-  if (req.method === "POST" && url.searchParams.has("find")) {
-    let d; try { d = await req.json(); } catch { return new Response("Demande invalide", { status: 400 }); }
-    const key = contactKey(d.email, d.phone);
-    if (!key) return new Response("Indiquez votre e-mail et votre téléphone.", { status: 400 });
-    const who = sha((context.ip || "?") + "find");
-    const rl = ((await store.get("rf/" + who, { type: "json" })) || []).filter(t => t > Date.now() - 36e5);
-    if (rl.length >= 10) return new Response("Trop de recherches : réessayez dans une heure.", { status: 429 });
-    await store.setJSON("rf/" + who, rl.concat(Date.now()));
-    const { blobs } = await store.list({ prefix: "c/" });
-    const list = (await Promise.all(blobs.map(b => store.get(b.key, { type: "json" })))).filter(o => o && o.ck === key);
-    list.sort((a, b) => b.created.localeCompare(a.created));
-    return Response.json(list.map(pub));
-  }
-
   if (req.method === "POST") {
     let d; try { d = await req.json(); } catch { return new Response("Demande invalide", { status: 400 }); }
     const oid = String(d.id || "").toUpperCase();
@@ -58,9 +72,10 @@ export default async (req, context) => {
     await store.setJSON("rl/" + who, recent.concat(Date.now()));
     const now = new Date().toISOString();
     const amount = Number(d.amount) > 0 && Number(d.amount) < 10000 ? Math.round(Number(d.amount) * 100) / 100 : null;
-    const o = { id: oid, created: now, quote: !!d.quote, amount, summary: clean(d.summary, 160), name: clean(d.name, 60), ck: contactKey(d.email, d.phone), steps: [{ s: "recue", at: now }], tracking: "" };
+    const o = { id: oid, created: now, quote: !!d.quote, amount, summary: clean(d.summary, 160), name: clean(d.name, 60), steps: [{ s: "recue", at: now }], tracking: "" };
     await store.setJSON("c/" + oid, o);
-    return Response.json(pub(o), { status: 201 });
+    const mailed = await sendConfirmation(o, String(d.email || "").trim(), clean(d.details, 3000), url.origin).catch(() => false);
+    return Response.json({ ...pub(o), mailed }, { status: 201 });
   }
 
   if (req.method === "PATCH") {
