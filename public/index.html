@@ -906,7 +906,7 @@ a{color:var(--accent)}
       <div class="field"><label for="odName">Prénom et nom <span class="req">*</span></label><input id="odName" autocomplete="name" maxlength="60" required></div>
       <div class="field"><label for="odMail">E-mail <span class="req">*</span></label><span class="help">Je vous réponds à cette adresse.</span><input id="odMail" type="email" autocomplete="email" maxlength="80" required inputmode="email"></div>
       <div class="field full"><label for="odAddr">Adresse de livraison <span class="req">*</span></label><textarea id="odAddr" autocomplete="street-address" maxlength="200" placeholder="Rue et numéro, NPA et localité" required style="min-height:64px"></textarea></div>
-      <div class="field"><label for="odTel">Téléphone (facultatif)</label><input id="odTel" type="tel" autocomplete="tel" maxlength="30" inputmode="tel"></div>
+      <div class="field"><label for="odTel">Téléphone <span class="req">*</span></label><span class="help">Pour La Poste et en cas de question.</span><input id="odTel" type="tel" autocomplete="tel" maxlength="30" inputmode="tel" placeholder="079 123 45 67" required></div>
       <div class="field"><label for="odNote">Remarque (facultatif)</label><input id="odNote" maxlength="300"></div>
     </div>
     <input id="odBot" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px">
@@ -1030,6 +1030,7 @@ $("orderForm").addEventListener("submit", async e => {
   const name = $("odName").value.trim(), mail = $("odMail").value.trim(), addr = $("odAddr").value.trim();
   if (!name || !addr) return st("Indiquez votre nom et votre adresse de livraison.", "err");
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) return st("Vérifiez votre adresse e-mail.", "err");
+  if ($("odTel").value.replace(/\D/g, "").length < 9) return st("Indiquez votre numéro de téléphone.", "err");
   $("odSend").disabled = true;
   let link = "";
   if (odFile){
