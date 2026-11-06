@@ -534,6 +534,8 @@ button,input,select,textarea{font-family:inherit}
 .trk-find summary{color:var(--glow)}
 .trk-mine{display:grid;gap:8px;margin-top:14px}
 .trk-mine .it{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;border:1.5px solid #2b333e;border-radius:12px;padding:10px 12px}
+.od-where{border:2px solid var(--glow);border-radius:12px;padding:10px 12px;font-size:.92rem;background:rgba(90,209,240,.12)}
+.od-where b{color:var(--glow)}
 a{color:var(--accent)}
 </style>
 
@@ -843,7 +845,7 @@ a{color:var(--accent)}
     </div>
     <div class="panel suivi" id="suivi" hidden style="margin-top:16px">
       <h3>Suivre ma commande</h3>
-      <p class="small muted">Entrez le numéro reçu après votre commande (par exemple HT-2611-AB12CD).</p>
+      <p class="small muted">Entrez le code reçu après votre commande et dans l'e-mail de confirmation (par exemple HT-2611-AB12CD).</p>
       <form id="trkForm" novalidate style="display:flex;gap:8px;flex-wrap:wrap">
         <input id="trkId" placeholder="HT-…" maxlength="20" autocomplete="off" style="max-width:260px;text-transform:uppercase">
         <button class="btn" type="submit">Voir l'avancement</button>
@@ -966,7 +968,8 @@ a{color:var(--accent)}
     <p class="small muted" id="odReq"><span class="req">*</span> obligatoire</p>
     <div class="od-next" id="odNext" hidden>
       <div id="odNextBody"></div>
-      <div class="od-num">Votre numéro de commande : <b id="odNum"></b> <button class="btn ghost sm" type="button" data-copy-el="odNum">Copier</button></div>
+      <div class="od-num">Votre code de commande : <b id="odNum"></b> <button class="btn ghost sm" type="button" data-copy-el="odNum">Copier</button></div>
+      <div class="od-where"><b>Suivi de votre commande :</b> à tout moment, allez dans <b>Livraison</b>, tout en bas, à « Suivre ma commande », et entrez ce code. Notez-le ou faites une capture d'écran.</div>
       <div class="od-keep"><b>Gardez votre suivi :</b> ce numéro reste enregistré sur cet appareil<span id="odMailed"></span>.
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><a class="btn sm" id="odTrack" href="#suivi">Suivre ma commande</a><button class="btn ghost sm" type="button" id="odCopyLink">Copier le lien de suivi</button><button class="btn ghost sm" type="button" id="odShare" hidden>M'envoyer le lien</button></div></div>
       <p class="small">Pas d'e-mail de ma part ? Regardez dans vos spams.</p>
@@ -1484,7 +1487,7 @@ async function mineBanner(){
     const r = await fetch("/api/commande?id=" + encodeURIComponent(o.id), {cache:"no-store"}); if (!r.ok) return;
     const d = await r.json(), last = d.steps[d.steps.length-1].s, paid = d.steps.some(x => x.s === "payee");
     if (last === "envoyee" && Date.now() - new Date(d.steps[d.steps.length-1].at) > 14*864e5) return;
-    $("mineTxt").innerHTML = `Votre commande <b>${esc(d.id)}</b> : ${!paid && d.amount && !d.quote ? `à payer par TWINT, <b>${chf(d.amount)}</b> au ${esc(TWINT_NUM)} (message « ${esc(d.id)} »)` : !paid && d.quote && d.amount ? `prix confirmé, <b>${chf(d.amount)}</b> à payer par TWINT au ${esc(TWINT_NUM)}` : esc(STEP_LABEL[last])}`;
+    $("mineTxt").innerHTML = `Votre commande <b>${esc(d.id)}</b> (suivi : Livraison, tout en bas) : ${!paid && d.amount && !d.quote ? `à payer par TWINT, <b>${chf(d.amount)}</b> au ${esc(TWINT_NUM)} (message « ${esc(d.id)} »)` : !paid && d.quote && d.amount ? `prix confirmé, <b>${chf(d.amount)}</b> à payer par TWINT au ${esc(TWINT_NUM)}` : esc(STEP_LABEL[last])}`;
     $("mineGo").href = "?commande=" + d.id + "#suivi"; $("mineBar").hidden = false;
     $("mineX").onclick = () => { $("mineBar").hidden = true; try { localStorage.setItem("ht-orders-hidden", JSON.stringify(hidden.concat(d.id))); } catch(e){} };
   } catch(e){}

@@ -24,15 +24,16 @@ async function sendConfirmation(o, to, details, origin) {
   const pay = o.quote
     ? "Ne payez pas encore : je vérifie votre demande et je vous envoie le prix exact par e-mail en 24 heures maximum. Vous payerez ensuite par TWINT."
     : `Montant à payer maintenant : ${chf(o.amount)}\nEnvoyez-le par TWINT au ${twint}, avec le message « ${o.id} ». Dès que je reçois votre paiement, je lance l'impression.`;
-  const text = `Bonjour ${o.name || ""},\n\nMerci pour votre commande ! Je l'ai bien reçue.\n\nNuméro de commande : ${o.id}\n\n${pay}\n\nSuivre votre commande : ${link}\n\nRécapitulatif :\n${details}\n\nÀ bientôt,\nHyper Tech · Impression 3D en Suisse`;
+  const text = `Bonjour ${o.name || ""},\n\nMerci pour votre commande ! Je l'ai bien reçue.\n\nCode de commande : ${o.id}\n\n${pay}\n\nSuivi de votre commande : à tout moment, allez sur le site, dans « Livraison », tout en bas à « Suivre ma commande », et entrez ce code.\nOu ouvrez directement : ${link}\n\nRécapitulatif :\n${details}\n\nÀ bientôt,\nHyper Tech · Impression 3D en Suisse`;
   const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#0a0c10;max-width:560px">
     <div style="background:#0a0c10;color:#fff;padding:16px 20px;border-radius:12px 12px 0 0;font-weight:bold;font-size:18px">Hyper Tech</div>
     <div style="border:3px solid #0aa6da;border-top:0;border-radius:0 0 12px 12px;padding:20px">
       <p>Bonjour ${escH(o.name || "")},</p><p>Merci pour votre commande ! Je l'ai bien reçue.</p>
-      <p>Numéro de commande : <b>${o.id}</b></p>
+      <p>Code de commande : <b style="font-size:18px">${o.id}</b></p>
       ${o.quote
         ? `<p style="background:#e3f6fc;border-radius:10px;padding:12px"><b>Ne payez pas encore.</b> Je vérifie votre demande et je vous envoie le prix exact par e-mail en 24 heures maximum. Vous payerez ensuite par TWINT.</p>`
         : `<div style="background:#5ad1f0;border-radius:10px;padding:14px"><div>Montant à payer maintenant</div><div style="font-size:26px;font-weight:bold">${chf(o.amount)}</div><div>Par TWINT au <b>${escH(twint)}</b>, avec le message « <b>${o.id}</b> ».</div></div><p>Dès que je reçois votre paiement, je lance l'impression.</p>`}
+      <p style="border:2px solid #0aa6da;border-radius:10px;padding:10px 12px"><b>Suivi de votre commande :</b> à tout moment, allez sur le site, dans <b>Livraison</b>, tout en bas à « Suivre ma commande », et entrez votre code <b>${o.id}</b>.</p>
       <p><a href="${link}" style="display:inline-block;background:#0a0c10;color:#fff;text-decoration:none;padding:10px 18px;border-radius:99px;font-weight:bold">Suivre ma commande</a></p>
       <p style="font-weight:bold;margin-bottom:4px">Récapitulatif</p><pre style="white-space:pre-wrap;font-family:Arial,sans-serif;font-size:13px;background:#f2f5f7;border-radius:10px;padding:12px;margin:0">${escH(details)}</pre>
       <p>À bientôt,<br>Hyper Tech · Impression 3D en Suisse</p></div></div>`;
