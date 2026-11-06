@@ -3,7 +3,7 @@
 import { getStore } from "@netlify/blobs";
 import { createHash } from "node:crypto";
 
-const ADMIN_HASH = "249446e8fe1724ac963d3352be1d4e1bcd5a535163b3ae7061614e93946269cb";   // empreinte SHA-256 du mot de passe propriétaire
+const ADMIN_HASH = "763e97bb45af5d11dc35c7d23691359aa60b22b5e02eb9cc44e8e32944cec42d";   // empreinte SHA-256 du mot de passe propriétaire
 const sha = s => createHash("sha256").update(String(s)).digest("hex");
 const isAdmin = req => sha(req.headers.get("x-admin-key") || "") === ADMIN_HASH;
 const clean = (s, n) => String(s || "").replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, n);
