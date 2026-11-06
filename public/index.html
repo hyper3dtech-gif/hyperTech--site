@@ -488,6 +488,20 @@ button,input,select,textarea{font-family:inherit}
 .order-dlg::backdrop{background:rgba(10,12,16,.6)}
 .order-dlg .panel{margin:0}
 .od-sum pre{margin:6px 0 0;white-space:pre-wrap;font:500 .84rem/1.5 var(--f-body);color:var(--hero-muted);background:#151a21;border-radius:10px;padding:10px 12px;max-height:200px;overflow:auto}
+.od-steps{list-style:none;margin:0;padding:0;display:flex;gap:6px;flex-wrap:wrap;font-size:.82rem;font-weight:700}
+.od-steps li{display:flex;align-items:center;gap:6px;padding:5px 10px 5px 5px;border-radius:99px;background:#151a21;color:var(--hero-muted)}
+.od-steps li b{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:#2b333e;color:var(--hero-ink);font-size:.72rem}
+.od-steps li.done b{background:var(--glow);color:var(--ink)}
+.od-steps li.done b{font-size:0}.od-steps li.done b::after{content:"✓";font-size:.75rem}
+.od-steps li.cur{color:var(--hero-ink);outline:2px solid var(--glow)}
+.od-steps li.cur b{background:var(--glow);color:var(--ink)}
+.od-alert,.od-pending,.od-leave{border:2px solid var(--glow);background:rgba(90,209,240,.14);border-radius:12px;padding:10px 12px;font-size:.9rem;color:var(--hero-ink)}
+.od-alert b,.od-pending b,.od-leave b{color:var(--glow)}
+.od-pending .linkbtn{color:var(--glow)}
+.od-next{display:grid;gap:8px;border:2px solid var(--glow);border-radius:12px;padding:14px;background:rgba(90,209,240,.10)}
+.od-next>b{color:var(--glow)}
+.od-next ol{margin:0;padding-left:1.2em;display:grid;gap:6px;font-size:.92rem}
+.req{color:var(--glow)}
 a{color:var(--accent)}
 </style>
 
@@ -723,6 +737,7 @@ a{color:var(--accent)}
         <p class="small muted" id="rInfo"></p>
         <div class="eta"><span>Livraison estimée</span><b id="rEta"></b></div>
         <a class="btn" id="customWa" href="#" target="_blank" rel="noopener">Envoyer ma demande sur WhatsApp</a>
+        <div class="od-pending" id="odPending" hidden><b>Demande pas encore envoyée.</b> Il manque vos coordonnées de livraison. <button class="linkbtn" type="button" id="odResume">Terminer ma demande</button></div>
         <p class="reply24">Je réponds toujours en 24 heures maximum.</p>
         <p class="small muted" id="rAfter">Dans WhatsApp, joignez votre fichier .stl au message.</p>
       </div>
@@ -880,18 +895,38 @@ a{color:var(--accent)}
 <dialog class="order-dlg" id="orderDlg" aria-labelledby="odTitle">
   <form class="panel" id="orderForm" novalidate>
     <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h3 id="odTitle">Envoyer ma demande</h3><button class="btn ghost sm" type="button" id="odClose" aria-label="Fermer">✕</button></div>
+    <ol class="od-steps" aria-label="Étapes de la commande">
+      <li class="done"><b>1</b>Votre modèle</li>
+      <li class="cur" id="odStep2"><b>2</b>Vos coordonnées</li>
+      <li id="odStep3"><b>3</b>Ma confirmation</li>
+    </ol>
+    <div class="od-alert" id="odAlert"><b>Pas encore terminé :</b> remplissez vos coordonnées de livraison ci-dessous, puis cliquez sur « Envoyer ma demande ».</div>
     <div class="od-sum"><span class="legend">Votre demande</span><pre id="odSummary"></pre></div>
     <div class="fgrid">
-      <div class="field"><label for="odName">Prénom et nom</label><input id="odName" autocomplete="name" maxlength="60" required></div>
-      <div class="field"><label for="odMail">E-mail</label><span class="help">Je vous réponds à cette adresse.</span><input id="odMail" type="email" autocomplete="email" maxlength="80" required inputmode="email"></div>
-      <div class="field full"><label for="odAddr">Adresse de livraison</label><textarea id="odAddr" autocomplete="street-address" maxlength="200" placeholder="Rue et numéro, NPA et localité" required style="min-height:64px"></textarea></div>
+      <div class="field"><label for="odName">Prénom et nom <span class="req">*</span></label><input id="odName" autocomplete="name" maxlength="60" required></div>
+      <div class="field"><label for="odMail">E-mail <span class="req">*</span></label><span class="help">Je vous réponds à cette adresse.</span><input id="odMail" type="email" autocomplete="email" maxlength="80" required inputmode="email"></div>
+      <div class="field full"><label for="odAddr">Adresse de livraison <span class="req">*</span></label><textarea id="odAddr" autocomplete="street-address" maxlength="200" placeholder="Rue et numéro, NPA et localité" required style="min-height:64px"></textarea></div>
       <div class="field"><label for="odTel">Téléphone (facultatif)</label><input id="odTel" type="tel" autocomplete="tel" maxlength="30" inputmode="tel"></div>
       <div class="field"><label for="odNote">Remarque (facultatif)</label><input id="odNote" maxlength="300"></div>
     </div>
     <input id="odBot" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px">
     <div id="odStatus"></div>
     <button class="btn" type="submit" id="odSend">Envoyer ma demande</button>
-    <p class="reply24">Je réponds toujours en 24 heures maximum, par e-mail.</p>
+    <p class="small muted" id="odReq"><span class="req">*</span> obligatoire</p>
+    <div class="od-next" id="odNext" hidden>
+      <b>Votre demande est envoyée, mais la commande n'est pas encore terminée.</b>
+      <ol>
+        <li>Je vérifie votre modèle et vous confirme le prix exact <b>par e-mail, en 24 heures maximum</b>.</li>
+        <li>Vous payez par TWINT ou par virement, selon les indications de mon e-mail.</li>
+        <li>J'imprime votre pièce et je vous l'envoie par La Poste, avec un numéro de suivi.</li>
+      </ol>
+      <p class="small">Pas d'e-mail de ma part ? Regardez dans vos spams.</p>
+      <button class="btn" type="button" id="odDone">J'ai compris</button>
+    </div>
+    <div class="od-leave" id="odLeave" hidden>
+      <b>Votre demande n'est pas encore envoyée.</b> Si vous fermez maintenant, je ne la recevrai pas.
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn sm" type="button" id="odStay">Continuer ma demande</button><button class="btn ghost sm" type="button" id="odQuit">Fermer quand même</button></div>
+    </div>
   </form>
 </dialog>
 <a class="fab" id="fab" href="#" target="_blank" rel="noopener" aria-label="Me contacter sur WhatsApp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"></path></svg><span>Une question ?<small>Réponse en 24 h max</small></span></a>
@@ -968,16 +1003,27 @@ async function uploadSTL(f){
   stlUp = {file: f, url}; return url;
 }
 /* Commande par e-mail (site en ligne) : fenêtre avec nom, e-mail, adresse */
-let odText = "", odFile = null;
+let odText = "", odFile = null, odSent = false;
+const odShut = () => { const d = $("orderDlg"); d.close ? d.close() : d.removeAttribute("open"); $("odPending").hidden = odSent || !LIVE; };
+function odTryClose(){ if (odSent) return odShut(); $("odLeave").hidden = false; $("odLeave").scrollIntoView({block:"nearest"}); }
 const stripTail = t => t.replace(/\n*Nom :\s*\nAdresse :\s*$/, "").trim();
 function openOrder(text, file){
   odText = stripTail(text); odFile = file || null;
   $("odSummary").textContent = odText.replace(STL_TOKEN, file ? "(le fichier part avec la demande)" : "").replace(/\n{3,}/g, "\n\n");
   $("odStatus").innerHTML = ""; $("odSend").disabled = false; $("odSend").hidden = false;
+  odSent = false; $("odNext").hidden = true; $("odLeave").hidden = true; $("odAlert").hidden = false; $("odReq").hidden = false;
+  $("odStep2").className = "cur"; $("odStep3").className = "";
   const d = $("orderDlg"); if (d.showModal) d.showModal(); else d.setAttribute("open", "");
   setTimeout(() => $("odName").focus(), 50);
 }
-$("odClose").addEventListener("click", () => $("orderDlg").close ? $("orderDlg").close() : $("orderDlg").removeAttribute("open"));
+$("odClose").addEventListener("click", odTryClose);
+$("orderDlg").addEventListener("cancel", e => { if (!odSent){ e.preventDefault(); odTryClose(); } });
+$("orderDlg").addEventListener("click", e => { if (e.target === $("orderDlg")) odTryClose(); });
+$("odStay").addEventListener("click", () => { $("odLeave").hidden = true; $("odName").focus(); });
+$("odQuit").addEventListener("click", odShut);
+$("odDone").addEventListener("click", odShut);
+$("odResume").addEventListener("click", () => { const d = $("orderDlg"); $("odLeave").hidden = true; if (d.showModal) d.showModal(); else d.setAttribute("open", ""); });
+window.addEventListener("beforeunload", e => { if (LIVE && !odSent && !$("odPending").hidden){ e.preventDefault(); e.returnValue = ""; } });
 $("orderForm").addEventListener("submit", async e => {
   e.preventDefault();
   const st = (m, k) => $("odStatus").innerHTML = m ? `<div class="status ${k}">${esc(m)}</div>` : "";
@@ -996,8 +1042,10 @@ $("orderForm").addEventListener("submit", async e => {
     const r = await fetch("/", {method:"POST", headers:{"Content-Type":"application/x-www-form-urlencoded"},
       body: new URLSearchParams({"form-name":"commande", "bot-field": $("odBot").value, nom: name, email: mail, telephone: $("odTel").value.trim(), adresse: addr, remarque: $("odNote").value.trim(), commande, fichier: link}).toString()});
     if (!r.ok) throw 0;
-    st("Merci ! Votre demande m'est bien arrivée. Je vous réponds par e-mail en 24 heures maximum.", "ok");
-    $("odSend").hidden = true;
+    st("", "");
+    odSent = true; $("odSend").hidden = true; $("odAlert").hidden = true; $("odReq").hidden = true; $("odLeave").hidden = true;
+    $("odStep2").className = "done"; $("odStep3").className = "cur";
+    $("odNext").hidden = false; $("odNext").scrollIntoView({block:"nearest"}); $("odPending").hidden = true;
   } catch(err){ st("L'envoi n'a pas fonctionné : réessayez, ou écrivez-moi sur WhatsApp.", "err"); $("odSend").disabled = false; }
 });
 document.addEventListener("click", e => {
