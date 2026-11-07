@@ -123,7 +123,7 @@ main > section[data-page].on{animation:pageIn .35s ease}
 /* Hero */
 .hero{padding:0}
 .hero-band{background:radial-gradient(700px 420px at 80% 30%, color-mix(in srgb,var(--accent) 45%, transparent), transparent 70%),var(--hero);color:var(--hero-ink)}
-.hero-grid{display:grid;grid-template-columns:1.15fr 1fr;gap:32px;align-items:center;padding-block:56px}
+.hero-grid{display:grid;grid-template-columns:1fr;gap:32px;align-items:center;padding-block:56px}
 @media (max-width:860px){.hero-grid{grid-template-columns:1fr;padding-block:36px}}
 .hero h1{font-size:clamp(2.4rem,6vw,4.4rem);font-weight:800;letter-spacing:-.04em;line-height:1.02}
 .hero h1 em{font-style:normal;color:var(--accent)}
@@ -637,7 +637,6 @@ a{color:var(--accent)}
           <span class="chip">PLA &amp; PETG</span><span class="chip">Max 21 × 21 × 20 cm</span><span class="chip">1 couleur par pièce</span><span class="chip">Personnalisation possible</span><span class="chip">Envoi partout en Suisse</span>
         </div>
       </div>
-      <div class="hero-3d" id="heroViewer"><span class="hint3d">3D · glissez pour tourner</span></div>
     </div>
   </div>
   <div class="wrap hero-below">
@@ -2195,13 +2194,6 @@ calc = function(){ baseCalc(); updEta(); };
 $("yr").textContent = new Date().getFullYear();
 renderShop(); calc(); updWa();
 route(location.hash.slice(1) || "accueil");
-/* Modèle 3D qui tourne en haut de la page d'accueil */
-(() => {
-  const box = $("heroViewer");
-  if (HAS3D) { try { makeViewer(box, vaseGeometry(), {hex: getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#6b35d9", rough: .3}); return; } catch(e) {} }
-  box.insertAdjacentHTML("afterbegin", `<div style="height:100%;display:grid;place-items:center;padding:14%"><svg class="benchy-ico" viewBox="0 0 400 280" style="width:100%;color:var(--accent)" aria-hidden="true"><use href="#benchy"></use></svg></div>`);
-  box.querySelector(".hint3d").remove();
-})();
 </script>
 
 </body>
