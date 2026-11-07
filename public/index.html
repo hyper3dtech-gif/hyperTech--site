@@ -552,6 +552,23 @@ footer .foot-bottom a{color:var(--hero-muted);text-decoration:underline}
 .wait.done{background:#12301f;color:#7be0a5}
 .od-via{display:grid;gap:8px;border:2px solid var(--glow);border-radius:12px;padding:12px;background:rgba(90,209,240,.14);font-size:.92rem}
 .od-via b{color:var(--glow)}
+.stepH{display:flex;align-items:center;gap:10px;font:800 1.05rem var(--f-display);color:var(--hero-ink);margin-top:6px}
+.stepH b{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--glow);color:var(--ink);font-size:.95rem;flex:none}
+.guide-open{display:flex;align-items:center;gap:10px;width:100%;text-align:left;cursor:pointer;font:700 .95rem var(--f-body);padding:12px 14px;border-radius:12px;border:2px dashed var(--glow);background:rgba(90,209,240,.10);color:var(--hero-ink)}
+.guide-open span{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--glow);color:var(--ink);font-weight:800;flex:none}
+.guide-open:hover{background:rgba(90,209,240,.2)}
+.cpick{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px}
+.cpick label{position:relative;display:grid;gap:2px;justify-items:center;text-align:center;padding:8px 6px;border-radius:12px;border:2px solid #2b333e;background:#151a21;cursor:pointer;color:var(--hero-ink)}
+.cpick label input{position:absolute;opacity:0;pointer-events:none}
+.cpick label svg{width:100%;max-width:90px;height:auto;background:#e4ebf0;border-radius:8px;padding:4px}
+.cpick label b{font-size:.84rem;line-height:1.2}
+.cpick label small{font-size:.72rem;color:var(--hero-muted)}
+.cpick label:has(input:checked){border-color:var(--glow);box-shadow:0 0 0 4px rgba(90,209,240,.25)}
+.cpick label:has(input:checked)::after{content:"✓";position:absolute;top:4px;right:6px;width:20px;height:20px;border-radius:50%;background:var(--glow);color:var(--ink);font-size:.75rem;font-weight:800;display:grid;place-items:center}
+.cpick label.off{opacity:.4;cursor:not-allowed}
+.line.free span{color:var(--glow)!important;font-weight:700;font-size:.84rem}
+.guide-dlg{border:0;padding:20px;border-radius:var(--r);background:var(--bg);width:min(1000px,calc(100% - 24px));max-height:calc(100dvh - 24px);overflow:auto}
+.guide-dlg::backdrop{background:rgba(10,12,16,.6)}
 a{color:var(--accent)}
 </style>
 
@@ -594,11 +611,10 @@ a{color:var(--accent)}
 <header class="nav">
   <div class="wrap">
     <a class="brand" href="#accueil" aria-label="Hyper Tech, accueil"><span class="logo-badge"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#htlogo"></use></svg></span><span class="brand-word">Hyper Tech</span></a>
-    <a class="btn sm" href="#sur-mesure">Calculer mon prix</a>
   </div>
   <nav class="catnav" aria-label="Rubriques">
     <div class="wrap"><div class="cats" id="cats">
-      <a href="#accueil">Accueil</a><a href="#sur-mesure">Mon modèle 3D</a><a href="#guide">Guide</a><a href="#boutique">Boutique</a><a href="#coloris">Coloris</a><a href="#livraison">Livraison</a><a href="#avis">Avis &amp; questions</a>
+      <a href="#accueil">Accueil</a><a href="#sur-mesure">Mon modèle 3D</a><a href="#boutique">Boutique</a><a href="#livraison">Livraison</a><a href="#avis">Avis &amp; questions</a>
     </div><div class="subcats" id="subcats" hidden></div></div>
   </nav>
 </header>
@@ -612,9 +628,8 @@ a{color:var(--accent)}
         <span class="eyebrow" style="color:var(--hero-muted)">Impression 3D · Suisse</span>
         <h1>Des objets imprimés en 3D, <em>livrés chez vous.</em></h1>
         <p>Chaque semaine, une sélection de créations prêtes à commander. Ou envoyez votre propre modèle : je l'imprime avec soin et je vous l'envoie par La Poste.</p>
-        <div class="hero-cta"><a class="btn" href="#sur-mesure">Calculer mon prix</a><a class="btn ghost" href="#boutique">Voir la boutique</a></div>
         <div class="chips">
-          <span class="chip">PLA &amp; PETG</span><span class="chip">Max 21 × 21 × 20 cm</span><span class="chip">1 couleur par pièce</span><span class="chip">Personnalisation possible</span><span class="chip">Envoi partout en Suisse</span>
+          <span class="chip">PLA &amp; PETG</span><span class="chip">Max 21 × 21 × 20 cm</span><span class="chip">1 couleur par pièce</span><span class="chip">Personnalisation possible</span><span class="chip">Envoi partout en Suisse</span><span class="chip">Livraison offerte dès CHF 60</span>
         </div>
       </div>
       <div class="hero-3d" id="heroViewer"><span class="hint3d">3D · glissez pour tourner</span></div>
@@ -622,27 +637,28 @@ a{color:var(--accent)}
   </div>
   <div class="wrap hero-below">
     <nav class="offers" aria-label="Que voulez-vous faire ?">
-      <a class="offer" href="#sur-mesure"><span class="tag">Vous avez un modèle</span><h3>Imprimer mon modèle</h3><p>Importez votre fichier .stl ou collez un lien Printables : le prix s'affiche tout de suite.</p><b class="go">Calculer mon prix →</b></a>
+      <a class="offer" href="#sur-mesure"><span class="tag">Vous avez un modèle</span><h3>Imprimer mon modèle</h3><p>Importez votre fichier .stl ou collez un lien Printables : le prix s'affiche tout de suite.</p><b class="go">Commencer →</b></a>
       <a class="offer" href="#sur-mesure" data-mode="idea"><span class="tag">Vous avez une idée</span><h3>Modèle personnalisé</h3><p>Décrivez votre idée : je crée le modèle 3D moi-même, puis je l'imprime.</p><b class="go">Envoyer mon idée →</b></a>
       <a class="offer" href="#boutique"><span class="tag">Prêt à commander</span><h3>La boutique</h3><p>Les créations de la semaine, à tourner en 3D et à commander en un clic.</p><b class="go">Voir la boutique →</b></a>
     </nav>
     <div class="trust" aria-label="Commander en confiance">
       <div><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></span><span><b>Prix clair</b>Avec un fichier .stl, le prix s'affiche tout de suite. Pour un lien ou une création, je vous le confirme par e-mail.</span></div>
       <div><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2"></rect><path d="M3 10h18"></path></svg></span><span><b>Paiement simple</b>Par TWINT ou par virement.</span></div>
-      <div><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"></path><path d="M3 7l9 4 9-4M12 11v10"></path></svg></span><span><b>Envoi suivi La Poste</b>Pièces contrôlées, emballées et suivies jusqu'à chez vous.</span></div>
+      <div><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"></path><path d="M3 7l9 4 9-4M12 11v10"></path></svg></span><span><b>Envoi par La Poste</b>Pièces contrôlées et bien emballées.</span></div>
       <div><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"></path></svg></span><span><b>Contact direct</b>Une vraie personne vous répond sur WhatsApp.</span></div>
     </div>
   </div>
 </section>
 
-<section id="coloris" data-page>
+
+
+<section id="sur-mesure" data-page>
   <div class="wrap">
-    <div class="shop-top">
-      <div class="head" style="margin:0">
-        <span class="eyebrow">Coloris</span>
-        <h2>Les couleurs disponibles</h2>
-      </div>
-      <button class="btn ghost" type="button" id="openStock" hidden>Gérer mes bobines</button>
+    <div class="head">
+      <span class="eyebrow">Sur mesure</span>
+      <h2>Importez votre modèle, voyez le prix.</h2>
+      <p class="muted">Avec un fichier .stl, le prix affiché est le prix à payer. Avec un lien ou une création, je vous confirme le prix par e-mail.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm ghost" type="button" id="openSettings" hidden>Réglages des prix</button><button class="btn sm ghost" type="button" id="openStock" hidden>Gérer mes bobines</button></div>
     </div>
     <form class="atelier" id="stockPanel" hidden novalidate>
       <h3>Stock de bobines <span class="tag solid">visible par vous seule</span></h3>
@@ -661,49 +677,7 @@ a{color:var(--accent)}
         <button class="btn ghost" type="button" id="sClose">Fermer</button>
       </div>
     </form>
-    <div class="colors" id="colors"></div>
-    <div class="mats">
-      <div class="mat"><b>PLA</b> · précis et beau, idéal pour la déco, les figurines et les cadeaux. Résiste jusqu'à environ 55 °C.</div>
-      <div class="mat"><b>PETG</b> · solide et durable, pour les pièces utiles ou d'extérieur. Résiste jusqu'à environ 75 °C. <span class="muted">Un peu plus cher que le PLA.</span></div>
-    </div>
-  </div>
-</section>
-
-<section id="guide" data-page>
-  <div class="wrap">
-    <div class="shop-top">
-      <div class="head" style="margin:0">
-        <span class="eyebrow">Guide</span>
-        <h2>Votre modèle en 3 minutes</h2>
-        <p class="muted">Choisissez votre situation, puis suivez les étapes.</p>
-      </div>
-      <a class="btn ghost" href="https://www.printables.com" target="_blank" rel="noopener">Ouvrir Printables ↗</a>
-    </div>
-    <div class="gtabs" role="tablist" aria-label="Choisissez votre situation">
-      <button type="button" role="tab" class="gtab" data-g="find"><b>Je cherche un modèle</b><span>Trouver une idée sur Printables</span></button>
-      <button type="button" role="tab" class="gtab" data-g="stl"><b>Je télécharge le .stl</b><span>Puis je l'importe ici</span></button>
-      <button type="button" role="tab" class="gtab" data-g="link"><b>J'envoie juste le lien</b><span>Le plus simple, même sur téléphone</span></button>
-    </div>
-    <div class="gstage">
-      <div class="gprogress" id="gProgress"></div>
-      <div class="gstep" id="gStep" aria-live="polite"></div>
-      <div class="gnav">
-        <button type="button" class="btn ghost sm" id="gPrev">← Précédent</button>
-        <span class="mono muted" id="gCount"></span>
-        <button type="button" class="btn sm" id="gNext">Suivant →</button>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="sur-mesure" data-page>
-  <div class="wrap">
-    <div class="head">
-      <span class="eyebrow">Sur mesure</span>
-      <h2>Importez votre modèle, voyez le prix.</h2>
-      <p class="muted">Avec un fichier .stl, le prix affiché est le prix à payer. Avec un lien ou une création, je vous confirme le prix par e-mail.</p>
-      <div><button class="btn sm ghost" type="button" id="openSettings" hidden>Réglages des prix</button></div>
-    </div>
+    <div id="colors" hidden></div>
     <form class="atelier" id="settingsPanel" hidden novalidate>
       <h3>Réglages des prix <span class="tag solid">visible par vous seule</span></h3>
       <div class="fgrid">
@@ -724,12 +698,14 @@ a{color:var(--accent)}
     </form>
     <div class="custom">
       <div class="panel">
-        <span class="help">Choisissez votre situation : vous avez déjà un fichier, un lien vers un modèle, ou seulement une idée.</span>
+        <div class="stepH"><b>1</b>Votre modèle</div>
+        <span class="help">Qu'avez-vous ? Choisissez une seule réponse.</span>
         <div class="seg" id="modeSeg">
-          <label><input type="radio" name="mode" value="file" checked> J'ai le fichier .stl</label>
-          <label><input type="radio" name="mode" value="link"> J'ai un lien Printables</label>
-          <label><input type="radio" name="mode" value="idea"> Je n'ai pas de modèle : création personnalisée</label>
+          <label><input type="radio" name="mode" value="file" checked> J'ai un fichier .stl</label>
+          <label><input type="radio" name="mode" value="link"> J'ai un lien (Printables…)</label>
+          <label><input type="radio" name="mode" value="idea"> Je n'ai rien : je décris mon idée</label>
         </div>
+        <button class="guide-open" type="button" data-guide><span>?</span> Je ne sais pas comment faire : voir le guide pas à pas</button>
         <div id="fileBox" class="field">
           <label class="drop" id="drop" for="stlIn">
             <input id="stlIn" type="file" accept=".stl">
@@ -752,13 +728,16 @@ a{color:var(--accent)}
           <div class="field"><label for="crDesc">Votre idée</label><span class="help">Décrivez l'objet, son usage et les détails importants. Plus c'est précis, plus le devis est juste.</span><textarea id="crDesc" maxlength="600" placeholder="Ex. : un clip pour remplacer celui cassé de mon store, 4 cm de long…"></textarea></div>
           <div class="field"><label for="crSize">Taille souhaitée</label><span class="help">Longueur × largeur × hauteur en cm, même approximative.</span><input id="crSize" placeholder="8 × 5 × 3 cm"></div>
         </div>
+        <div class="stepH"><b>2</b>Taille</div>
         <div class="field" id="scaleBox">
-          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><label for="scale">Taille</label><span class="mono" id="dimsOut"></span></div>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><label for="scale">Taille de la pièce</label><span class="mono" id="dimsOut"></span></div>
           <span class="help">Agrandit ou réduit le modèle : 100 % = taille d'origine, 50 % = deux fois plus petit. Maximum 21 × 21 × 20 cm.</span>
           <div class="scale-row"><input id="scale" type="range" min="10" max="300" step="5" value="100" aria-label="Taille en pourcentage"><div class="unit" style="width:118px;flex:none"><input id="scaleN" type="number" min="1" max="1000" value="100" aria-label="Taille en pourcentage" inputmode="numeric"><span>%</span></div></div>
           <button class="btn sm ghost" type="button" id="fitBtn" hidden>Ajuster à la taille maximale</button>
         </div>
-        <div class="field"><span class="legend">Coloris</span><span class="help">La couleur et la matière de votre pièce. PLA : beau et précis. PETG : plus solide, un peu plus cher.</span><div class="seg" id="colorSeg"></div></div>
+        <div class="stepH"><b>3</b>Couleur</div>
+        <div class="field"><span class="help">Touchez la couleur de votre choix. <b>PLA</b> : beau et précis, pour la déco et les cadeaux. <b>PETG</b> : plus solide, pour les objets utiles ou d'extérieur, un peu plus cher.</span><div class="cpick" id="colorSeg"></div></div>
+        <div class="stepH"><b>4</b>Solidité</div>
         <div class="field">
           <span class="legend">Remplissage</span>
           <span class="help">L'intérieur d'une pièce imprimée n'est pas plein : c'est un quadrillage. Plus le remplissage est élevé, plus la pièce est solide et lourde.</span>
@@ -770,6 +749,7 @@ a{color:var(--accent)}
           </div>
           <span class="small muted" id="infillHint"></span>
         </div>
+        <div class="stepH"><b>5</b>Options et envoi</div>
         <div class="field" id="persoBox">
           <label class="check"><input type="checkbox" id="persoOn"> <span><b>Ajouter une personnalisation</b> <span class="muted">(+ <span id="persoFee">CHF 5.00</span>)</span></span></label>
           <span class="small muted">Je modifie le modèle moi-même : prénom, texte, logo, trou pour porte-clés, adaptation de forme.</span>
@@ -777,10 +757,11 @@ a{color:var(--accent)}
         </div>
         <div class="two">
           <div class="field"><label for="qty">Quantité</label><span class="help">Nombre de pièces identiques.</span><div class="unit"><input id="qty" type="number" min="1" step="1" value="1" inputmode="numeric"><span>pcs</span></div></div>
-          <div class="field"><span class="legend">Envoi</span><span class="help">Economy : 2 à 3 jours. Priority : le lendemain, un peu plus cher.</span><div class="seg" id="shipSeg"></div></div>
+          <div class="field"><span class="legend">Envoi</span><span class="help">Economy : 2 à 3 jours, <b>offerte dès CHF 60</b>. Priority : le lendemain, un peu plus cher.</span><div class="seg" id="shipSeg"></div></div>
         </div>
       </div>
       <div class="panel receipt" aria-live="polite">
+        <div class="stepH"><b>6</b>Votre prix et l'envoi</div>
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h3>Votre estimation</h3><span class="tag" id="rMat"></span></div>
         <div id="rMsg"></div>
         <div class="lines" id="rLines"></div>
@@ -846,6 +827,7 @@ a{color:var(--accent)}
     <div class="info">
       <div class="panel">
         <h3>Tarifs La Poste 2026</h3>
+        <div class="eta"><span>Livraison Economy</span><b>offerte dès CHF 60 de commande</b></div>
         <div style="overflow-x:auto"><table>
           <thead><tr><th>Colis</th><th style="text-align:right">Economy · 2–3 j</th><th style="text-align:right">Priority · 1 j</th></tr></thead>
           <tbody><tr><td>Jusqu'à 2 kg</td><td class="n">9.00</td><td class="n">10.50</td></tr><tr><td>Jusqu'à 10 kg</td><td class="n">12.00</td><td class="n">13.50</td></tr></tbody>
@@ -983,12 +965,35 @@ a{color:var(--accent)}
 <footer><div class="wrap">
   <div class="foot">
     <div><b style="color:var(--ink)">Hyper Tech</b><p class="small" style="margin-top:6px">Impression 3D en PLA et PETG, envoyée partout en Suisse.</p></div>
-    <div><h4>Commander</h4><a href="#sur-mesure">Mon modèle 3D</a><a href="#boutique">Boutique</a><a href="#guide">Guide</a></div>
-    <div><h4>Infos</h4><a href="#coloris">Coloris</a><a href="#livraison">Livraison et paiement</a><a href="#avis">Avis et questions</a><a href="#suivi">Suivre ma commande</a></div>
+    <div><h4>Votre commande</h4><a href="#suivi">Suivre ma commande</a><a href="#guide">Guide pas à pas</a></div>
     <div><h4>Contact</h4><a id="footWa" href="#" target="_blank" rel="noopener">WhatsApp</a><a href="#questions">Écrivez-moi</a><a class="foot-contact" href="tel:+41796150203">+41 79 615 02 03</a><a class="foot-contact" href="mailto:hyper3dtech@gmail.com">hyper3dtech@gmail.com</a></div>
   </div>
-  <div class="foot-bottom"><span>© <span id="yr"></span> Hyper Tech · Impression 3D en Suisse · <a href="#mentions">Mentions légales et protection des données</a></span><span>PLA &amp; PETG · Max 21 × 21 × 20 cm · Envoi La Poste</span></div>
+  <div class="foot-bottom"><span>© <span id="yr"></span> Hyper Tech · Impression 3D en Suisse · <a href="#mentions">Mentions légales et protection des données</a></span></div>
 </div></footer>
+<dialog class="guide-dlg" id="guideDlg" aria-label="Guide pas à pas">
+    <div class="shop-top">
+      <div class="head" style="margin:0">
+        <span class="eyebrow">Guide</span>
+        <h2>Votre modèle en 3 minutes</h2>
+        <p class="muted">Choisissez votre situation, puis suivez les étapes.</p>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><a class="btn ghost" href="https://www.printables.com" target="_blank" rel="noopener">Ouvrir Printables ↗</a><button class="btn" type="button" id="guideClose">Fermer le guide</button></div>
+    </div>
+    <div class="gtabs" role="tablist" aria-label="Choisissez votre situation">
+      <button type="button" role="tab" class="gtab" data-g="find"><b>Je cherche un modèle</b><span>Trouver une idée sur Printables</span></button>
+      <button type="button" role="tab" class="gtab" data-g="stl"><b>Je télécharge le .stl</b><span>Puis je l'importe ici</span></button>
+      <button type="button" role="tab" class="gtab" data-g="link"><b>J'envoie juste le lien</b><span>Le plus simple, même sur téléphone</span></button>
+    </div>
+    <div class="gstage">
+      <div class="gprogress" id="gProgress"></div>
+      <div class="gstep" id="gStep" aria-live="polite"></div>
+      <div class="gnav">
+        <button type="button" class="btn ghost sm" id="gPrev">← Précédent</button>
+        <span class="mono muted" id="gCount"></span>
+        <button type="button" class="btn sm" id="gNext">Suivant →</button>
+      </div>
+    </div>
+  </dialog>
 <dialog class="order-dlg" id="orderDlg" aria-labelledby="odTitle">
   <form class="panel" id="orderForm" novalidate>
     <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h3 id="odTitle">Envoyer ma demande</h3><button class="btn ghost sm" type="button" id="odClose" aria-label="Fermer">✕</button></div>
@@ -1055,6 +1060,7 @@ const CONFIG = {
   whatsapp: "41796150203",
   whatsappAffiche: "+41 79 615 02 03",
   prixBobineKg: 19, diametre: 1.75, tarifHoraire: 1.20, marge: 0.40, arrondi: 0.50, emballageG: 300,
+  livraisonOfferteDes: 60,   // Economy gratuite à partir de ce montant (CHF, sans la livraison)
   persoPrix: 5.00,       // personnalisation faite à la main, par commande
   designPrix: 15.00,     // création d'un modèle 3D, prix de départ
   stockFaibleG: 250,     // en dessous : « Stock faible »
@@ -1086,9 +1092,19 @@ const $ = id => document.getElementById(id);
 const chf = n => "CHF " + n.toFixed(2);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const colorOf = id => COLORS.find(c => c.id === id) || COLORS[0];
+const shipCost = (ship, kg, subtotal) => ship.id === "economy" && subtotal >= CONFIG.livraisonOfferteDes ? 0 : ship.price(kg);
+const shipTxt = (v) => v === 0 ? "offerte" : chf(v);
 const waLink = t => "https://wa.me/" + CONFIG.whatsapp + "?text=" + encodeURIComponent(t);
 const mailLink = (subject, body) => "mailto:" + CONFIG.contact + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
 let orderText = "";
+function openGuide(){ const d = $("guideDlg"); if (d.showModal) { if (!d.open) d.showModal(); } else d.setAttribute("open", ""); }
+function closeGuide(){ const d = $("guideDlg"); d.close ? d.close() : d.removeAttribute("open"); }
+document.addEventListener("click", e => {
+  if (e.target.closest("[data-guide], a[href='#guide']")){ e.preventDefault(); openGuide(); return; }
+  if (e.target.closest("#guideClose")) return closeGuide();
+  const a = e.target.closest("#guideDlg a[href^='#']"); if (a) closeGuide();
+  if (e.target === $("guideDlg")) closeGuide();
+});
 const STL_TOKEN = "@@STL@@";
 let stlUp = null;   // {file, url} : dernier fichier déposé
 function setOrder(body){ orderText = body; $("customWa").href = waLink(body.replace(STL_TOKEN, "Téléchargement : (je joins le fichier)")); if (typeof updCart === "function") updCart(); }
@@ -1123,9 +1139,10 @@ function buildCart(){
     txt += `\n${many ? `— Impression ${i+1} —\n` : ""}${lines}\n`;
   });
   const priced = items.every(it => it.price != null);
-  const grams = items.reduce((g, it) => g + (it.grams || 0), 0), port = ship.price((grams + CONFIG.emballageG)/1000);
+  const sub = items.filter(it => it.price != null).reduce((t, it) => t + it.price + it.perso, 0);
+  const grams = items.reduce((g, it) => g + (it.grams || 0), 0), port = shipCost(ship, (grams + CONFIG.emballageG)/1000, priced ? sub : 0);
   const est = items.map((it, i) => `• Modèle${many ? " " + (i+1) : ""} : ${it.price != null ? chf(it.price) : "sur devis"}${it.perso ? `\n• Personnalisation${many ? " " + (i+1) : ""} : ${chf(it.perso)}` : ""}`).join("\n");
-  txt += `\nEnvoi : La Poste ${shipName}\n\nEstimation du prix :\n${est}\n• Livraison : ${priced ? chf(port) : "dès " + chf(ship.price(0))}`;
+  txt += `\nEnvoi : La Poste ${shipName}\n\nEstimation du prix :\n${est}\n• Livraison : ${priced ? shipTxt(port) : ship.id === "economy" ? "dès " + chf(ship.price(0)) + ", offerte dès CHF " + CONFIG.livraisonOfferteDes : "dès " + chf(ship.price(0))}`;
   return {text: txt, files, amount: priced ? items.reduce((t, it) => t + it.price + it.perso, 0) + port : 0, quote: !priced, summary: many ? `${items.length} impressions` : items[0].label};
 }
 async function uploadSTL(f){
@@ -1219,10 +1236,10 @@ $("orderForm").addEventListener("submit", async e => {
          <div class="od-pay"><span>Montant à payer</span><span class="amt">${chf(odOpts.amount)}</span>
            <div class="row"><span>Envoyez-le par TWINT au ${esc(TWINT_NUM)}</span><button class="btn sm" type="button" data-copy="${esc(TWINT_NUM.replace(/\s/g, ""))}">Copier le numéro</button></div>
            <div class="row"><span>Message à indiquer : ${oid}</span><button class="btn sm" type="button" data-copy="${oid}">Copier</button></div></div>
-         <ol><li>Dès que je reçois votre paiement, je lance l'impression.</li><li>Je vous envoie votre pièce par La Poste, avec un numéro de suivi.</li><li>Vous suivez chaque étape avec votre numéro de commande.</li></ol>
+         <ol><li>Dès que je reçois votre paiement, je lance l'impression.</li><li>Je vous envoie votre pièce par La Poste.</li><li>Vous suivez chaque étape avec votre numéro de commande.</li></ol>
          <p class="small">Si votre modèle pose un problème d'impression, je vous contacte par e-mail avant de l'imprimer.</p>`
       : `<b>Ne payez pas encore.</b>
-         <ol><li>Je vérifie votre demande et vous envoie le prix exact <b>par e-mail, en 24 heures maximum</b>.</li><li>Vous payez ensuite par TWINT, selon mon e-mail.</li><li>J'imprime votre pièce et je vous l'envoie par La Poste, avec un numéro de suivi.</li></ol>`;
+         <ol><li>Je vérifie votre demande et vous envoie le prix exact <b>par e-mail, en 24 heures maximum</b>.</li><li>Vous payez ensuite par TWINT, selon mon e-mail.</li><li>J'imprime votre pièce et je vous l'envoie par La Poste.</li></ol>`;
     $("odNext").hidden = false; $("odNext").scrollIntoView({block:"nearest"}); $("odPending").hidden = true;
     if (odOpts.cart){ cart = []; resetCalc(); updCart(); }
   } catch(err){ st("L'envoi n'a pas fonctionné : réessayez, ou écrivez-moi sur WhatsApp.", "err"); $("odSend").disabled = false; }
@@ -1368,6 +1385,7 @@ function renderCats(page){
 }
 let currentPage = null;
 function route(id){
+  if (id === "guide"){ setTimeout(openGuide, 0); id = "sur-mesure"; }
   let el = id && document.getElementById(id);
   if (!el) { id = "accueil"; el = $("accueil"); }
   const sec = el.closest("main > section[data-page]") || $("accueil");
@@ -1617,7 +1635,7 @@ function trackHtml(o){
   const done = Object.fromEntries(o.steps.map(x => [x.s, x.at])), list = stepsFor(o), last = o.steps[o.steps.length-1].s;
   return `<div class="trk-card"><div><b>Commande ${esc(o.id)}</b>${o.summary ? ` · <span class="muted">${esc(o.summary)}</span>` : ""}</div>
     ${o.amount && !done.payee ? `<div class="small">À payer par TWINT : <b>${chf(o.amount)}</b> au ${esc(TWINT_NUM)}, message « ${esc(o.id)} »</div>` : ""}
-    <ol class="trk-steps">${list.map((k, i) => `<li class="${done[k] ? "ok" : ""} ${k === last ? "now" : ""}"><i>${done[k] ? "✓" : i+1}</i><span><b>${STEP_LABEL[k]}</b><small>${done[k] ? fmtDT(done[k]) : "à venir"}</small>${k === "envoyee" && o.tracking ? `<small>Numéro de suivi : <b>${esc(o.tracking)}</b></small><small><a href="https://service.post.ch/ekp-web/ui/entry/search/${encodeURIComponent(o.tracking)}" target="_blank" rel="noopener">suivre sur post.ch</a></small>` : ""}</span></li>`).join("")}</ol></div>`;
+    <ol class="trk-steps">${list.map((k, i) => `<li class="${done[k] ? "ok" : ""} ${k === last ? "now" : ""}"><i>${done[k] ? "✓" : i+1}</i><span><b>${STEP_LABEL[k]}</b><small>${done[k] ? fmtDT(done[k]) : "à venir"}</small></span></li>`).join("")}</ol></div>`;
 }
 async function lookupOrder(id){
   id = id.trim().toUpperCase(); if (!id) return;
@@ -1644,14 +1662,13 @@ async function loadAdminOrders(){
         ${(() => { const fl = (o.files && o.files.length) ? o.files : o.file ? [o.file] : []; return fl.length ? `<div class="trk-files">${fl.map((f, i) => `<a class="btn sm" href="${esc(f)}">⬇ Télécharger le fichier 3D${fl.length > 1 ? " " + (i+1) : ""}</a>`).join("")}</div>` : ""; })()}
         ${o.contact ? `<details style="margin-top:6px"><summary class="small" style="color:var(--glow);cursor:pointer">Voir le détail du client et de la commande</summary><div class="small" style="margin-top:6px;line-height:1.6">E-mail : <a href="mailto:${esc(o.contact.email)}">${esc(o.contact.email)}</a><br>Téléphone : <a href="tel:${esc(o.contact.phone)}">${esc(o.contact.phone)}</a><br>Adresse : ${esc(o.contact.address)}${o.contact.note ? "<br>Remarque : " + esc(o.contact.note) : ""}</div><pre style="white-space:pre-wrap;font:500 .8rem/1.5 var(--f-body);color:var(--hero-muted);background:#151a21;border-radius:10px;padding:10px;margin-top:8px">${esc(o.details || "")}</pre></details>` : ""}</div>
         <div class="ctl"><select data-k="status">${stepsFor(o).map(k => `<option value="${k}" ${k === last ? "selected" : ""}>${STEP_LABEL[k]}</option>`).join("")}</select>
-        <input data-k="tracking" placeholder="N° de suivi La Poste" value="${esc(o.tracking || "")}">
         ${o.quote ? `<input data-k="amount" type="number" min="1" step="0.5" placeholder="Prix confirmé" value="${o.amount || ""}" style="max-width:150px">` : ""}
         <button class="btn sm" type="button" data-k="save">Mettre à jour</button><button class="btn ghost sm" type="button" data-k="del">Supprimer</button><span class="small" data-k="msg"></span></div></div>`;
     }).join("") : `<p class="small muted">Aucune commande pour le moment.</p>`);
     $("trkAdmin").querySelectorAll(".trk-admin-row").forEach(row => {
       const id = row.dataset.oid, q = k => row.querySelector(`[data-k="${k}"]`);
       q("save").addEventListener("click", async () => {
-        const body = {status: q("status").value, tracking: q("tracking").value.trim()}; if (q("amount") && q("amount").value) body.amount = +q("amount").value;
+        const body = {status: q("status").value}; if (q("amount") && q("amount").value) body.amount = +q("amount").value;
         q("msg").textContent = "…";
         try { const r = await fetch("/api/commande?id=" + id, {method:"PATCH", headers:{"Content-Type":"application/json", "x-admin-key": adminKey}, body: JSON.stringify(body)}); if (!r.ok) throw 0; q("msg").textContent = "Enregistré ✓"; }
         catch(e){ q("msg").textContent = "Échec : réessayez"; }
@@ -1916,8 +1933,8 @@ function aCalc(){
     lines += `<div class="line"><span>${pt.qty > 1 ? pt.qty + " × " : ""}${esc(pt.name || "Pièce " + (i+1))} · ${c.mat} ${esc(c.name)} · ${pt.infill} %</span><span>${chf(e.price*pt.qty)}</span></div>`;
   });
   if (!ok){ $("aCalc").innerHTML = ""; return; }
-  const ship = SHIP.find(x => x.id === "economy"), port = ship.price((grams + CONFIG.emballageG)/1000), total = sum + port;
-  $("aCalc").innerHTML = lines + `<div class="line"><span>Livraison La Poste Economy</span><span>${chf(port)}</span></div><div class="line tot"><span>Prix calculé, livraison comprise</span><span>${chf(total)}</span></div>`;
+  const ship = SHIP.find(x => x.id === "economy"), port = shipCost(ship, (grams + CONFIG.emballageG)/1000, sum), total = sum + port;
+  $("aCalc").innerHTML = lines + `<div class="line"><span>Livraison La Poste Economy</span><span>${shipTxt(port)}</span></div><div class="line tot"><span>Prix calculé, livraison comprise</span><span>${chf(total)}</span></div>`;
   if (!aPriceTouched) $("aPrice").value = total.toFixed(2);
   if (big && !$("aDims").dataset.touched) $("aDims").value = big.map(d => fmtCm(d)).join(" × ") + " cm";
 }
@@ -1999,7 +2016,7 @@ document.querySelectorAll('input[name="infill"]').forEach(i => {
 $("persoFee").textContent = chf(CONFIG.persoPrix);
 let preview = null;
 if (colorOf(state.color).stock === "out" || !COLORS.some(c => c.id === state.color)) state.color = (COLORS.find(c => c.stock !== "out") || COLORS[0] || {}).id;
-$("colorSeg").innerHTML = COLORS.map(c => `<label><input type="radio" name="col" value="${esc(c.id)}" ${c.id===state.color?"checked":""} ${c.stock==="out"?"disabled":""}><span class="dot" style="background:${esc(c.hex)}"></span>${esc(c.name)} <span class="mono muted">${c.mat}${c.stock==="out"?" · épuisé":""}</span></label>`).join("");
+$("colorSeg").innerHTML = COLORS.map(c => `<label class="${c.stock==="out"?"off":""}"><input type="radio" name="col" value="${esc(c.id)}" ${c.id===state.color?"checked":""} ${c.stock==="out"?"disabled":""}><svg class="benchy-ico ${c.mat==="PETG"?"petg":""}" viewBox="0 0 400 280" style="color:${esc(c.hex)}" aria-hidden="true"><use href="#benchy"></use></svg><b>${esc(c.name)}</b><small>${c.mat}${c.stock==="out" ? " · épuisé" : c.stock==="low" ? " · stock faible" : ""}</small></label>`).join("");
 $("persoOn").addEventListener("change", () => { $("persoTxt").hidden = !$("persoOn").checked; calc(); });
 $("persoTxt").addEventListener("input", calc);
 function persoInfo(){
@@ -2122,7 +2139,7 @@ function calc(){
   const grams = shellG + infillG;
   const hours = shellG / CONFIG.grammesParHeure + infillG / CONFIG.grammesParHeureRemplissage + 0.15;   // le remplissage s'imprime plus vite
   const piece = priceFor(grams, hours, mat);
-  const kg = (grams*qty + CONFIG.emballageG)/1000, port = ship.price(kg), total = piece*qty + perso.fee + port;
+  const kg = (grams*qty + CONFIG.emballageG)/1000, sub = piece*qty + perso.fee + cart.filter(it => it.price != null).reduce((t, it) => t + it.price + it.perso, 0), port = shipCost(ship, kg, sub), total = piece*qty + perso.fee + port;
   const fits = fitsAt(m.dims, s);
   state.total = fits ? total : null;
   $("dimsOut").textContent = `${fmtCm(dims[0])} × ${fmtCm(dims[1])} × ${fmtCm(dims[2])} cm`;
@@ -2130,13 +2147,14 @@ function calc(){
   $("rLines").innerHTML = `
     <div class="line"><span>Impression${qty > 1 ? ` (${qty} × ${chf(piece)})` : ""}</span><span>${chf(piece*qty)}</span></div>
     ${perso.line}
-    <div class="line"><span>La Poste ${ship.id==="economy"?"Economy":"Priority"}</span><span>${chf(port)}</span></div>`;
+    <div class="line"><span>La Poste ${ship.id==="economy"?"Economy":"Priority"}</span><span>${shipTxt(port)}</span></div>
+    ${ship.id === "economy" && port > 0 ? `<div class="line free"><span>Plus que ${chf(CONFIG.livraisonOfferteDes - sub)} pour la livraison offerte</span><span></span></div>` : port === 0 ? `<div class="line free"><span>Livraison offerte dès CHF ${CONFIG.livraisonOfferteDes} ✓</span><span></span></div>` : ""}`;
   $("rTotal").textContent = fits ? chf(total) : "—";
   $("rInfo").textContent = `Remplissage ${infillTxt} · environ ${Math.max(1, Math.round(grams))} g de filament · environ ${fmtH(hours)} d'impression par pièce.`;
   $("rAfter").textContent = "Votre fichier .stl part avec la demande : rien à joindre.";
   state.item = {valid: fits, label: `${m.name} · ${c.mat} ${c.name}${qty > 1 ? " · " + qty + " pièces" : ""}`, price: piece*qty, perso: perso.fee, grams: grams*qty, file: state.file,
     lines: `Fichier : ${m.name}\n@@FILE@@\nTaille : ${state.scale} % · ${fmtCm(dims[0])} × ${fmtCm(dims[1])} × ${fmtCm(dims[2])} cm\nColoris : ${c.mat} ${c.name}\nRemplissage : ${infillTxt}\nQuantité : ${qty}${perso.msg}`};
-  setOrder(`Bonjour, voici ma demande d'impression 3D :\n\nFichier : ${m.name}\n${STL_TOKEN}\nTaille : ${state.scale} % · ${fmtCm(dims[0])} × ${fmtCm(dims[1])} × ${fmtCm(dims[2])} cm\nColoris : ${c.mat} ${c.name}\nRemplissage : ${infillTxt}\nQuantité : ${qty}${perso.msg}\nEnvoi : La Poste ${ship.id==="economy"?"Economy":"Priority"}\n\nEstimation du prix :\n${fits ? `• Modèle : ${chf(piece*qty)}${qty > 1 ? ` (${qty} × ${chf(piece)})` : ""}${perso.fee ? `\n• Personnalisation : ${chf(perso.fee)}` : ""}\n• Livraison : ${chf(port)}` : "à confirmer (modèle trop grand à cette taille)"}\n\nNom :\nAdresse :`);
+  setOrder(`Bonjour, voici ma demande d'impression 3D :\n\nFichier : ${m.name}\n${STL_TOKEN}\nTaille : ${state.scale} % · ${fmtCm(dims[0])} × ${fmtCm(dims[1])} × ${fmtCm(dims[2])} cm\nColoris : ${c.mat} ${c.name}\nRemplissage : ${infillTxt}\nQuantité : ${qty}${perso.msg}\nEnvoi : La Poste ${ship.id==="economy"?"Economy":"Priority"}\n\nEstimation du prix :\n${fits ? `• Modèle : ${chf(piece*qty)}${qty > 1 ? ` (${qty} × ${chf(piece)})` : ""}${perso.fee ? `\n• Personnalisation : ${chf(perso.fee)}` : ""}\n• Livraison : ${shipTxt(port)}` : "à confirmer (modèle trop grand à cette taille)"}\n\nNom :\nAdresse :`);
 }
 
 /* ===== Contact ===== */
