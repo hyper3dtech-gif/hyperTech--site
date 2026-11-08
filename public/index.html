@@ -575,6 +575,13 @@ footer .foot-bottom a{color:var(--hero-muted);text-decoration:underline}
 .how3 .offer:hover{transform:none;border-color:var(--accent)!important;box-shadow:0 0 0 5px rgba(10,166,218,.14),0 10px 28px rgba(10,166,218,.22)}
 .how3 .num{display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:var(--glow);color:var(--ink);font-weight:800;font-size:1.1rem}
 .owner-del{justify-self:start;color:#ff8a8a!important;border-color:#5a2a2a!important;background:transparent}
+.shopcats{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.shopcats button{font:700 .95rem var(--f-body);padding:9px 16px;border-radius:999px;border:2px solid var(--accent);background:var(--hero);color:var(--hero-ink);cursor:pointer}
+.shopcats button small{font-size:.75rem;color:var(--hero-muted);margin-left:4px}
+.shopcats button.on{background:var(--glow);color:var(--ink);border-color:var(--glow)}
+.shopcats button.on small{color:var(--ink)}
+.owner-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.owner-cat{max-width:180px;padding:6px 10px;font-size:.84rem;background:#151a21;color:var(--hero-ink);border-color:#2b333e}
 a{color:var(--accent)}
 </style>
 
@@ -786,13 +793,22 @@ a{color:var(--accent)}
         <h2>Les créations de la semaine</h2>
         <p class="muted">Livraison comprise.</p>
       </div>
-      <button class="btn ghost" type="button" id="openAtelier" hidden>+ Ajouter une création</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost" type="button" id="openCats" hidden>Gérer les catégories</button><button class="btn ghost" type="button" id="openAtelier" hidden>+ Ajouter une création</button></div>
     </div>
+    <div class="atelier" id="catPanel" hidden>
+      <h3>Catégories de la boutique <span class="tag solid">visible par vous seule</span></h3>
+      <p class="small muted">Créez des catégories (par exemple « Fidget » pour les objets satisfaisants). Les clients cliquent dessus pour voir seulement ces créations. Une catégorie vide n'est pas montrée aux clients.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><input id="catName" placeholder="Nom de la catégorie, ex. Fidget" maxlength="30" style="max-width:320px"><button class="btn" type="button" id="catAdd">+ Créer la catégorie</button></div>
+      <div class="admin-list" id="catList"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost" type="button" id="catClose">Fermer</button><span class="small" id="catStatus"></span></div>
+    </div>
+    <div class="shopcats" id="shopCats"></div>
 
     <form class="atelier" id="atelier" hidden novalidate>
       <h3>Mode atelier <span class="tag solid">visible par vous seule</span></h3>
       <div class="fgrid">
         <div class="field"><label for="aName">Nom</label><input id="aName" placeholder="Fidget hexagonal" maxlength="60"></div>
+        <div class="field"><label for="aCat">Catégorie</label><select id="aCat"></select></div>
         <div class="field"><label for="aPhoto">Photo (facultatif)</label><input id="aPhoto" type="file" accept="image/png,image/jpeg,image/webp"></div>
         <div class="field full"><label for="aDesc">Description</label><textarea id="aDesc" maxlength="260" placeholder="Deux pièces qui s'emboîtent, imprimées en PLA."></textarea></div>
       </div>
@@ -1277,6 +1293,8 @@ function isoWeek(d = new Date()){ const t = new Date(Date.UTC(d.getFullYear(), d
 let catalog = {items:[]};
 try { catalog = JSON.parse($("catalog").textContent); } catch(e) {}
 if (!Array.isArray(catalog.items)) catalog.items = [];
+if (!Array.isArray(catalog.categories)) catalog.categories = [];
+let shopCat = "all";
 function applySettings(st){
   if (!st) return;
   ["prixBobineKg","tarifHoraire","marge","persoPrix","designPrix","remplissage"].forEach(k => { if (typeof st[k] === "number" && st[k] >= 0) CONFIG[k] = st[k]; });
@@ -1503,10 +1521,28 @@ function fallbackImg(item, view){
     : `<div style="height:100%;display:grid;place-items:center;padding:12%"><svg class="benchy-ico ${c.mat==="PETG"?"petg":""}" viewBox="0 0 400 280" style="width:100%;color:${c.hex}" aria-hidden="true"><use href="#benchy"></use></svg></div>`);
   const h = view.querySelector(".hint3d"); if (h) h.remove();
 }
+function catCount(id){ return catalog.items.filter(it => it.cat === id).length; }
+function renderShopCats(){
+  const cats = catalog.categories.filter(c => OWNER || catCount(c.id));
+  if (shopCat !== "all" && !catalog.categories.some(c => c.id === shopCat)) shopCat = "all";
+  $("shopCats").hidden = !cats.length;
+  $("shopCats").innerHTML = cats.length ? [`<button type="button" data-cat="all" class="${shopCat==="all"?"on":""}">Tout <small>${catalog.items.length}</small></button>`]
+    .concat(cats.map(c => `<button type="button" data-cat="${esc(c.id)}" class="${shopCat===c.id?"on":""}">${esc(c.name)} <small>${catCount(c.id)}</small></button>`)).join("") : "";
+  SUBS.boutique = [["Toutes les créations", () => { shopCat = "all"; renderShop(); scrollToEl("#shopCats"); }]].concat(cats.map(c => [c.name, () => { shopCat = c.id; renderShop(); scrollToEl("#shopCats"); }]));
+  if (typeof currentPage !== "undefined" && currentPage === "boutique") renderCats("boutique");
+  const sel = $("aCat"); if (sel){ const v = sel.value; sel.innerHTML = `<option value="">Sans catégorie</option>` + catalog.categories.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join(""); sel.value = v; }
+}
+document.addEventListener("click", e => { const b = e.target.closest("#shopCats [data-cat]"); if (!b) return; shopCat = b.dataset.cat; renderShop(); });
 function renderShop(){
   const week = isoWeek();
   $("weekLabel").textContent = "Sélection · semaine " + week.split("-S")[1];
-  const items = catalog.items.slice().sort((a,b) => (b.week||"").localeCompare(a.week||""));
+  renderShopCats();
+  const all = catalog.items.slice().sort((a,b) => (b.week||"").localeCompare(a.week||""));
+  const items = shopCat === "all" ? all : all.filter(it => it.cat === shopCat);
+  if (!items.length && all.length){
+    $("shop").innerHTML = `<div class="empty" style="grid-column:1/-1"><h3>Aucune création dans cette catégorie pour l'instant</h3><p class="muted">Revenez bientôt, ou regardez toutes les créations.</p></div>`;
+    return;
+  }
   if (!items.length){
     $("shop").innerHTML = `<div class="empty" style="grid-column:1/-1"><h3>La sélection de la semaine arrive bientôt</h3><p class="muted">En attendant, envoyez-moi votre propre modèle à imprimer.</p><a class="btn sm" href="#sur-mesure">Imprimer mon modèle</a></div>`;
     return;
@@ -1523,7 +1559,7 @@ function renderShop(){
         <div class="row"><h3>${esc(it.name)}</h3><span class="price">${chf(+it.price)}</span></div>
         <p class="small muted">${esc(it.desc)}</p>
         <div class="ctags">${[...new Map(ps.map(pt => [pt.color, colorOf(pt.color)])).values()].map(c => `<span class="tag"><span class="sw" style="background:${esc(c.hex)}"></span>${c.mat} · ${esc(c.name)}</span>`).join("")}${ps.length > 1 ? `<span class="tag">${ps.reduce((n,pt) => n + (pt.qty||1), 0)} pièces</span>` : ""}${it.dims?`<span class="tag">${esc(it.dims)}</span>`:""}</div>
-        ${OWNER ? `<button class="btn ghost sm owner-del" type="button" data-del-item="${esc(it.id)}">✕ Retirer de la boutique</button>` : ""}
+        ${OWNER ? `<div class="owner-row"><select class="owner-cat" data-cat-item="${esc(it.id)}" aria-label="Catégorie"><option value="">Sans catégorie</option>${catalog.categories.map(c => `<option value="${esc(c.id)}" ${it.cat===c.id?"selected":""}>${esc(c.name)}</option>`).join("")}</select><button class="btn ghost sm owner-del" type="button" data-del-item="${esc(it.id)}">✕ Retirer de la boutique</button></div>` : ""}
         <div class="card-actions">
           ${it.pay ? `<a class="btn sm" href="${esc(it.pay)}" target="_blank" rel="noopener">Payer avec TWINT</a>` : ""}
           <a class="btn sm ${it.pay?"ghost":""}" href="${esc(waLink(msg))}" data-order="${esc(msg)}" data-amount="${+it.price}" data-summary="${esc("Boutique : " + it.name)}" target="_blank" rel="noopener">${it.pay?"Une question":"Commander"}</a>
@@ -1540,6 +1576,47 @@ let artifactApi = null, assetsApi = null;
 let statusEl = "aStatus";
 function status(msg, kind){ $(statusEl).innerHTML = msg ? `<div class="status ${kind}">${esc(msg)}</div>` : ""; }
 let OWNER = false;
+async function ownerPublish(msgOk, el){
+  try { await artifactApi.publish(buildPage()); toast(msgOk); if (el) el.textContent = ""; }
+  catch(err){ toast("L'enregistrement n'a pas pu se faire : réessayez."); }
+}
+function renderCatList(){
+  $("catList").innerHTML = catalog.categories.length ? catalog.categories.map(c => `<div class="admin-item"><span>${esc(c.name)} · ${catCount(c.id)} création${catCount(c.id) > 1 ? "s" : ""}</span><span style="display:flex;gap:6px"><button class="btn sm ghost" type="button" data-cat-ren="${esc(c.id)}">Renommer</button><button class="btn sm ghost" type="button" data-cat-del="${esc(c.id)}">Supprimer</button></span></div>`).join("") : `<p class="small muted">Aucune catégorie pour l'instant.</p>`;
+}
+document.addEventListener("click", async e => {
+  if (!OWNER) return;
+  if (e.target.closest("#openCats")){ $("catPanel").hidden = false; renderCatList(); $("catName").focus(); return; }
+  if (e.target.closest("#catClose")){ $("catPanel").hidden = true; return; }
+  if (e.target.closest("#catAdd")){
+    const name = $("catName").value.trim(); if (!name) return $("catName").focus();
+    if (catalog.categories.some(c => c.name.toLowerCase() === name.toLowerCase())){ $("catStatus").textContent = "Cette catégorie existe déjà."; return; }
+    catalog.categories.push({id: "k" + Date.now().toString(36), name}); $("catName").value = "";
+    renderCatList(); renderShop(); $("catStatus").textContent = "Enregistrement…"; return ownerPublish(`Catégorie « ${name} » créée.`, $("catStatus"));
+  }
+  const ren = e.target.closest("[data-cat-ren]");
+  if (ren){
+    const c = catalog.categories.find(x => x.id === ren.dataset.catRen); const row = ren.closest(".admin-item");
+    row.innerHTML = `<input value="${esc(c.name)}" maxlength="30" style="max-width:240px"><span style="display:flex;gap:6px"><button class="btn sm" type="button" data-cat-ok="${esc(c.id)}">Enregistrer</button></span>`;
+    row.querySelector("input").focus(); return;
+  }
+  const ok = e.target.closest("[data-cat-ok]");
+  if (ok){
+    const c = catalog.categories.find(x => x.id === ok.dataset.catOk), v = ok.closest(".admin-item").querySelector("input").value.trim();
+    if (v) c.name = v; renderCatList(); renderShop(); return ownerPublish("Catégorie renommée.");
+  }
+  const del = e.target.closest("[data-cat-del]");
+  if (del){
+    if (del.dataset.confirm !== "1"){ del.dataset.confirm = "1"; del.textContent = "Confirmer (les créations restent en boutique)"; return; }
+    const id = del.dataset.catDel; catalog.categories = catalog.categories.filter(c => c.id !== id);
+    catalog.items.forEach(it => { if (it.cat === id) it.cat = ""; });
+    renderCatList(); renderShop(); return ownerPublish("Catégorie supprimée.");
+  }
+});
+document.addEventListener("change", e => {
+  const s = e.target.closest("[data-cat-item]"); if (!s || !OWNER) return;
+  const it = catalog.items.find(x => x.id === s.dataset.catItem); if (!it) return;
+  it.cat = s.value; renderShop(); if (!$("catPanel").hidden) renderCatList(); ownerPublish("Catégorie de la création modifiée.");
+});
 document.addEventListener("click", async e => {
   const b = e.target.closest("[data-del-item]"); if (!b || !OWNER) return;
   if (b.dataset.confirm !== "1"){ b.dataset.confirm = "1"; b.textContent = "Cliquez encore pour confirmer"; return; }
@@ -1570,7 +1647,7 @@ function renderAdminList(){
     $("openSettings").hidden = false;
     $("openReviews").hidden = false;
     renderAdminList();
-    OWNER = true; renderShop();
+    OWNER = true; $("openCats").hidden = false; renderShop();
   } catch(e) {}
 })();
 $("openAtelier").addEventListener("click", () => { statusEl = "aStatus"; $("atelier").hidden = false; $("aName").focus(); });
@@ -1984,7 +2061,7 @@ $("atelier").addEventListener("submit", async e => {
   if (!assetsApi) return status("L'envoi de fichiers n'est pas disponible dans cette vue.", "err");
   $("aSave").disabled = true;
   try {
-    const item = {id: "c" + Date.now().toString(36), name, desc: $("aDesc").value.trim(), price: Math.round(price*100)/100, dims: $("aDims").value.trim(), week: isoWeek(), parts: []};
+    const item = {id: "c" + Date.now().toString(36), cat: $("aCat").value || "", name, desc: $("aDesc").value.trim(), price: Math.round(price*100)/100, dims: $("aDims").value.trim(), week: isoWeek(), parts: []};
     if (pay) item.pay = pay;
     for (let i = 0; i < ready.length; i++){
       const pt = ready[i];
