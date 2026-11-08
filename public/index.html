@@ -796,9 +796,10 @@ a{color:var(--accent)}
         <div class="field"><label for="aPhoto">Photo (facultatif)</label><input id="aPhoto" type="file" accept="image/png,image/jpeg,image/webp"></div>
         <div class="field full"><label for="aDesc">Description</label><textarea id="aDesc" maxlength="260" placeholder="Deux pièces qui s'emboîtent, imprimées en PLA."></textarea></div>
       </div>
-      <div class="field"><span class="legend">Pièces de l'objet</span><span class="help">Une ligne par pièce : son fichier .stl, sa couleur, sa taille et son remplissage. Le prix se calcule tout seul.</span></div>
+      <div class="field"><span class="legend">Pièces de l'objet</span><span class="help">Un objet en plusieurs pièces (par exemple un fidget en 2 parties) : importez tous ses fichiers .stl d'un coup. Chaque fichier devient une pièce, avec sa propre couleur. Le prix se calcule tout seul.</span></div>
+      <label class="drop multi" for="aMulti"><input id="aMulti" type="file" accept=".stl" multiple><b>📂 Importer tous les fichiers .stl de l'objet</b><span class="small muted">Sélectionnez plusieurs fichiers à la fois (Ctrl ou Cmd + clic), ou glissez-les ici.</span></label>
       <div class="parts" id="aParts"></div>
-      <button class="btn ghost sm" type="button" id="aAddPart" style="justify-self:start">+ Ajouter une pièce</button>
+      <button class="btn sm" type="button" id="aAddPart" style="justify-self:start">+ Ajouter encore une pièce</button>
       <div class="aprice" id="aCalc"></div>
       <div class="fgrid">
         <div class="field"><label for="aPrice">Prix affiché (CHF, livraison comprise)</label><span class="help">Rempli automatiquement avec le prix calculé. Vous pouvez le modifier.</span><input id="aPrice" type="number" min="1" step="0.5" placeholder="19.00" inputmode="decimal"></div>
@@ -1042,7 +1043,7 @@ a{color:var(--accent)}
 
 </div>
 
-<script type="application/json" id="catalog">{"items":[{"id":"cmw7s34ip","name":"fidget","desc":"impression satisfaisante","price":13,"dims":"12.3 × 2.1 × 19.8 cm","week":"2026-S45","parts":[{"name":"ashen","color":"violet","scale":100,"infill":10,"qty":1,"grams":33,"model":{"asset":"06fb524e1289b1145f431a89e785507c"}}],"color":"violet"}],"spools":[{"id":"violet","name":"Violet brillant","mat":"PLA","hex":"#7a46f0","grams":550},{"id":"noir","name":"Noir","mat":"PLA","hex":"#26252c","grams":200},{"id":"blanc","name":"Blanc","mat":"PLA","hex":"#f1f0f4","grams":975},{"id":"beige","name":"Beige","mat":"PETG","hex":"#d8c3a0","grams":1000},{"id":"gris","name":"Gris","mat":"PETG","hex":"#8c8f98","grams":800}],"reviews":[]}</script>
+<script type="application/json" id="catalog">{"items":[],"spools":[{"id":"violet","name":"Violet brillant","mat":"PLA","hex":"#7a46f0","grams":550},{"id":"noir","name":"Noir","mat":"PLA","hex":"#26252c","grams":200},{"id":"blanc","name":"Blanc","mat":"PLA","hex":"#f1f0f4","grams":975},{"id":"beige","name":"Beige","mat":"PETG","hex":"#d8c3a0","grams":1000},{"id":"gris","name":"Gris","mat":"PETG","hex":"#8c8f98","grams":800}],"reviews":[]}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script id="main">
 /* ===== Source canonique (capturée avant tout rendu, pour republier la page) ===== */
@@ -1910,14 +1911,21 @@ function renderParts(){
   </div>`).join("");
   $("aParts").querySelectorAll(".part").forEach(row => {
     const pt = aParts.find(x => x.pid === +row.dataset.pid);
-    row.querySelector('[data-k="file"]').addEventListener("change", async e => {
-      const f = e.target.files[0]; if (!f) return;
+    row.querySelector('[data-k="file"]').addEventListener("change", e => { const f = e.target.files[0]; if (f) loadPartFile(pt, f, row); });
+    row.querySelector('[data-k="color"]').addEventListener("change", e => { pt.color = e.target.value; aCalc(); });
+  });
+  bindPartRows();
+}
+async function loadPartFile(pt, f, row){
+      row = row || $("aParts").querySelector(`.part[data-pid="${pt.pid}"]`);
       pt.file = f; pt.name = f.name.replace(/\.stl$/i, ""); pt.err = ""; pt.p = null; pt.an = null; row.querySelector("label").textContent = `Pièce ${aParts.indexOf(pt)+1} · ${f.name}`; aCalc();
       try { pt.p = parseSTL(await f.arrayBuffer()); pt.an = analyse(pt.p); if (!fitsAt(pt.an.dims, pt.scale/100)) pt.scale = Math.min(100, maxScale(pt.an.dims)); row.querySelector('[data-k="scale"]').value = pt.scale; }
       catch(err){ pt.err = (err && err.message) || "Fichier illisible."; }
       aCalc();
-    });
-    row.querySelector('[data-k="color"]').addEventListener("change", e => { pt.color = e.target.value; aCalc(); });
+}
+function bindPartRows(){
+  $("aParts").querySelectorAll(".part").forEach(row => {
+    const pt = aParts.find(x => x.pid === +row.dataset.pid);
     row.querySelector('[data-k="scale"]').addEventListener("input", e => { const v = parseFloat(e.target.value); if (v > 0) { pt.scale = Math.min(1000, Math.round(v)); aCalc(); } });
     row.querySelector('[data-k="infill"]').addEventListener("change", e => { pt.infill = +e.target.value; aCalc(); });
     row.querySelector('[data-k="qty"]').addEventListener("input", e => { pt.qty = Math.max(1, Math.min(20, Math.round(+e.target.value) || 1)); aCalc(); });
@@ -1951,6 +1959,18 @@ $("aAddPart").addEventListener("click", () => { aParts.push(newPart()); renderPa
 $("aPrice").addEventListener("input", () => { aPriceTouched = true; });
 $("aDims").addEventListener("input", () => { $("aDims").dataset.touched = "1"; });
 aParts = [newPart()]; renderParts();
+async function addPartFiles(files){
+  files = [...files].filter(f => /\.stl$/i.test(f.name)); if (!files.length) return;
+  aParts = aParts.filter(pt => pt.file || pt.err);   // retire les lignes vides
+  const fresh = files.map(f => { const pt = newPart(); aParts.push(pt); return [pt, f]; });
+  renderParts();
+  for (const [pt, f] of fresh) await loadPartFile(pt, f);
+}
+$("aMulti").addEventListener("change", e => { addPartFiles(e.target.files); e.target.value = ""; });
+const md = document.querySelector(".drop.multi");
+["dragover","dragenter"].forEach(t => md.addEventListener(t, e => { e.preventDefault(); md.classList.add("over"); }));
+["dragleave","drop"].forEach(t => md.addEventListener(t, e => { e.preventDefault(); md.classList.remove("over"); }));
+md.addEventListener("drop", e => addPartFiles(e.dataTransfer.files));
 
 $("atelier").addEventListener("submit", async e => {
   e.preventDefault();
