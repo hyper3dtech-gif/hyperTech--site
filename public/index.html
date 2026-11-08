@@ -574,6 +574,7 @@ footer .foot-bottom a{color:var(--hero-muted);text-decoration:underline}
 .how3 .offer{cursor:default}
 .how3 .offer:hover{transform:none;border-color:var(--accent)!important;box-shadow:0 0 0 5px rgba(10,166,218,.14),0 10px 28px rgba(10,166,218,.22)}
 .how3 .num{display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:var(--glow);color:var(--ink);font-weight:800;font-size:1.1rem}
+.owner-del{justify-self:start;color:#ff8a8a!important;border-color:#5a2a2a!important;background:transparent}
 a{color:var(--accent)}
 </style>
 
@@ -1041,7 +1042,7 @@ a{color:var(--accent)}
 
 </div>
 
-<script type="application/json" id="catalog">{"items":[],"spools":[{"id":"violet","name":"Violet brillant","mat":"PLA","hex":"#7a46f0","grams":550},{"id":"noir","name":"Noir","mat":"PLA","hex":"#26252c","grams":200},{"id":"blanc","name":"Blanc","mat":"PLA","hex":"#f1f0f4","grams":975},{"id":"beige","name":"Beige","mat":"PETG","hex":"#d8c3a0","grams":1000},{"id":"gris","name":"Gris","mat":"PETG","hex":"#8c8f98","grams":800}],"reviews":[]}</script>
+<script type="application/json" id="catalog">{"items":[{"id":"cmw7s34ip","name":"fidget","desc":"impression satisfaisante","price":13,"dims":"12.3 × 2.1 × 19.8 cm","week":"2026-S45","parts":[{"name":"ashen","color":"violet","scale":100,"infill":10,"qty":1,"grams":33,"model":{"asset":"06fb524e1289b1145f431a89e785507c"}}],"color":"violet"}],"spools":[{"id":"violet","name":"Violet brillant","mat":"PLA","hex":"#7a46f0","grams":550},{"id":"noir","name":"Noir","mat":"PLA","hex":"#26252c","grams":200},{"id":"blanc","name":"Blanc","mat":"PLA","hex":"#f1f0f4","grams":975},{"id":"beige","name":"Beige","mat":"PETG","hex":"#d8c3a0","grams":1000},{"id":"gris","name":"Gris","mat":"PETG","hex":"#8c8f98","grams":800}],"reviews":[]}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script id="main">
 /* ===== Source canonique (capturée avant tout rendu, pour republier la page) ===== */
@@ -1521,6 +1522,7 @@ function renderShop(){
         <div class="row"><h3>${esc(it.name)}</h3><span class="price">${chf(+it.price)}</span></div>
         <p class="small muted">${esc(it.desc)}</p>
         <div class="ctags">${[...new Map(ps.map(pt => [pt.color, colorOf(pt.color)])).values()].map(c => `<span class="tag"><span class="sw" style="background:${esc(c.hex)}"></span>${c.mat} · ${esc(c.name)}</span>`).join("")}${ps.length > 1 ? `<span class="tag">${ps.reduce((n,pt) => n + (pt.qty||1), 0)} pièces</span>` : ""}${it.dims?`<span class="tag">${esc(it.dims)}</span>`:""}</div>
+        ${OWNER ? `<button class="btn ghost sm owner-del" type="button" data-del-item="${esc(it.id)}">✕ Retirer de la boutique</button>` : ""}
         <div class="card-actions">
           ${it.pay ? `<a class="btn sm" href="${esc(it.pay)}" target="_blank" rel="noopener">Payer avec TWINT</a>` : ""}
           <a class="btn sm ${it.pay?"ghost":""}" href="${esc(waLink(msg))}" data-order="${esc(msg)}" data-amount="${+it.price}" data-summary="${esc("Boutique : " + it.name)}" target="_blank" rel="noopener">${it.pay?"Une question":"Commander"}</a>
@@ -1536,6 +1538,16 @@ function renderShop(){
 let artifactApi = null, assetsApi = null;
 let statusEl = "aStatus";
 function status(msg, kind){ $(statusEl).innerHTML = msg ? `<div class="status ${kind}">${esc(msg)}</div>` : ""; }
+let OWNER = false;
+document.addEventListener("click", async e => {
+  const b = e.target.closest("[data-del-item]"); if (!b || !OWNER) return;
+  if (b.dataset.confirm !== "1"){ b.dataset.confirm = "1"; b.textContent = "Cliquez encore pour confirmer"; return; }
+  b.disabled = true; b.textContent = "Retrait…";
+  catalog.items = catalog.items.filter(i => i.id !== b.dataset.delItem);
+  renderShop(); renderAdminList();
+  try { await artifactApi.publish(buildPage()); toast("Création retirée de la boutique."); }
+  catch(err){ toast("Le retrait n'a pas pu être enregistré : réessayez."); }
+});
 function renderAdminList(){
   $("adminList").innerHTML = catalog.items.length ? `<span class="legend">Créations en ligne</span>` + catalog.items.map(it =>
     `<div class="admin-item"><span>${esc(it.name)} · ${chf(+it.price)}${it.week?" · "+esc(it.week):""}</span><button class="btn sm ghost" type="button" data-del="${esc(it.id)}">Retirer</button></div>`).join("") : "";
@@ -1557,6 +1569,7 @@ function renderAdminList(){
     $("openSettings").hidden = false;
     $("openReviews").hidden = false;
     renderAdminList();
+    OWNER = true; renderShop();
   } catch(e) {}
 })();
 $("openAtelier").addEventListener("click", () => { statusEl = "aStatus"; $("atelier").hidden = false; $("aName").focus(); });
